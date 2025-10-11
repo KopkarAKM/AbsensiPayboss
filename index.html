@@ -26,9 +26,12 @@
         #camera-view.hidden {
             display: none;
         }
-        #attendance-section.disabled {
+        #attendance-section.disabled, #roster-selection.hidden {
             opacity: 0.5;
             pointer-events: none;
+        }
+         #roster-selection.hidden {
+            display: none;
         }
     </style>
 </head>
@@ -57,12 +60,24 @@
                     <option value="">-- Memuat Karyawan --</option>
                 </select>
             </div>
+            
+            <!-- Roster Selection -->
+            <div id="roster-selection" class="hidden mb-6 p-4 bg-gray-50 rounded-lg">
+                <label for="shift-select" class="block text-sm font-medium text-gray-700 mb-2">Pilih Jadwal Shift Hari Ini</label>
+                <div class="flex items-center space-x-2">
+                    <select id="shift-select" class="block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm">
+                        <option value="">-- Pilih Shift --</option>
+                        <option value="08:00">Pagi (08:00 - 16:00)</option>
+                        <option value="16:00">Sore (16:00 - 24:00)</option>
+                        <option value="00:00">Malam (00:00 - 08:00)</option>
+                    </select>
+                    <button id="save-roster-btn" class="px-4 py-2 bg-indigo-600 text-white font-medium rounded-md hover:bg-indigo-700">Simpan</button>
+                </div>
+                <p id="roster-message" class="text-xs text-center mt-2"></p>
+            </div>
 
             <!-- Attendance Section -->
             <div id="attendance-section" class="disabled space-y-6">
-                 <div class="bg-indigo-50 p-4 rounded-lg">
-                    <p id="roster-info" class="text-sm text-center font-medium text-indigo-800">Pilih nama untuk melihat jadwal.</p>
-                </div>
                  <div class="bg-blue-50 p-4 rounded-lg">
                     <div class="flex justify-between items-center">
                         <p class="text-sm font-medium text-blue-800">Status GPS: <span id="gps-status" class="font-bold">Mencari lokasi...</span></p>
@@ -129,7 +144,11 @@
         
         const employeeSelect = document.getElementById('employee-select');
         const attendanceSection = document.getElementById('attendance-section');
-        const rosterInfo = document.getElementById('roster-info');
+        const rosterSelection = document.getElementById('roster-selection');
+        const shiftSelect = document.getElementById('shift-select');
+        const saveRosterBtn = document.getElementById('save-roster-btn');
+        const rosterMessage = document.getElementById('roster-message');
+
         const gpsStatus = document.getElementById('gps-status');
         const distanceInfo = document.getElementById('distance-info');
         const refreshGpsBtn = document.getElementById('refresh-gps-btn');
@@ -153,7 +172,7 @@
         const cancelCaptureBtn = document.getElementById('cancel-capture-btn');
         
         // --- KONFIGURASI ---
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzgiMcIbpuS0_QmJjPJkWbsjw9vOUbwP073yGXAcmt28caFW7_b30zOX0SAZstBsrK6xQ/exec";
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzNf39jSt1ZEXJZmuxEojMpBGyyBONtOU7OyFEuwwxPS_YbO3k_XMWRnDFojbDEadD6BQ/exec";
         const CAFE_LAT = -8.679199;
         const CAFE_LON = 115.223842;
         const MAX_DISTANCE_METERS = 50;
@@ -204,27 +223,68 @@
         async function onEmployeeSelect(event) {
             selectedUser = event.target.value;
             absensiMessage.textContent = '';
+            rosterMessage.textContent = '';
+            shiftSelect.value = '';
+            
             if (selectedUser) {
                 attendanceSection.classList.remove('disabled');
-                rosterInfo.textContent = 'Memuat jadwal...';
+                rosterSelection.classList.remove('hidden');
                 await fetchRosterInfo(selectedUser);
             } else {
                 attendanceSection.classList.add('disabled');
-                rosterInfo.textContent = 'Pilih nama untuk melihat jadwal.';
+                rosterSelection.classList.add('hidden');
             }
         }
 
         async function fetchRosterInfo(username) {
+            rosterMessage.textContent = 'Memeriksa jadwal...';
             try {
                 const response = await fetch(`${SCRIPT_URL}?action=getRoster&username=${username}`);
                 const result = await response.json();
                 if (result.success && result.jadwal) {
-                    rosterInfo.textContent = `Jadwal hari ini: Masuk jam ${result.jadwal}`;
+                    shiftSelect.value = result.jadwal;
+                    rosterMessage.textContent = `Jadwal Anda hari ini: Shift ${result.jadwal}`;
+                    rosterMessage.className = 'text-xs text-center mt-2 text-green-600';
                 } else {
-                    rosterInfo.textContent = `Tidak ada jadwal khusus hari ini.`;
+                    rosterMessage.textContent = `Anda belum memilih shift untuk hari ini.`;
+                     rosterMessage.className = 'text-xs text-center mt-2 text-yellow-600';
                 }
             } catch (error) {
-                rosterInfo.textContent = 'Gagal memuat jadwal.';
+                rosterMessage.textContent = 'Gagal memuat jadwal.';
+                rosterMessage.className = 'text-xs text-center mt-2 text-red-600';
+            }
+        }
+        
+        async function saveRoster() {
+            const selectedShift = shiftSelect.value;
+            if (!selectedUser || !selectedShift) {
+                rosterMessage.textContent = 'Pilih nama dan shift terlebih dahulu.';
+                rosterMessage.className = 'text-xs text-center mt-2 text-red-600';
+                return;
+            }
+            
+            showLoading('Menyimpan jadwal...');
+            try {
+                const formData = new URLSearchParams();
+                formData.append('action', 'setRoster');
+                formData.append('username', selectedUser);
+                formData.append('shift', selectedShift);
+                
+                const response = await fetch(SCRIPT_URL, { method: 'POST', body: formData });
+                const result = await response.json();
+                
+                if(result.success) {
+                    rosterMessage.textContent = `Jadwal berhasil disimpan: Shift ${selectedShift}`;
+                    rosterMessage.className = 'text-xs text-center mt-2 text-green-600';
+                } else {
+                    rosterMessage.textContent = result.message || 'Gagal menyimpan jadwal.';
+                    rosterMessage.className = 'text-xs text-center mt-2 text-red-600';
+                }
+            } catch(error) {
+                 rosterMessage.textContent = 'Error jaringan saat menyimpan.';
+                 rosterMessage.className = 'text-xs text-center mt-2 text-red-600';
+            } finally {
+                hideLoading();
             }
         }
 
@@ -241,7 +301,9 @@
             }
 
             let watchId;
-            let timeoutId;
+            let timeoutId = setTimeout(() => {
+                handleGpsError("Waktu permintaan lokasi habis. Periksa sinyal & izin.");
+            }, 25000);
 
             const handleGpsError = (message) => {
                 navigator.geolocation.clearWatch(watchId);
@@ -251,10 +313,6 @@
                 distanceInfo.textContent = message;
                 refreshGpsBtn.classList.remove('hidden');
             };
-            
-            timeoutId = setTimeout(() => {
-                handleGpsError("Waktu permintaan lokasi habis. Periksa sinyal & izin.");
-            }, 25000);
 
             watchId = navigator.geolocation.watchPosition(
                 (position) => {
@@ -439,6 +497,7 @@
 
         // --- EVENT LISTENERS ---
         employeeSelect.addEventListener('change', onEmployeeSelect);
+        saveRosterBtn.addEventListener('click', saveRoster);
         
         absenMasukBtn.addEventListener('click', () => startCamera('masuk'));
         absenPulangBtn.addEventListener('click', () => startCamera('pulang'));
