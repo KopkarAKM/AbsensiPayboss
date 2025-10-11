@@ -1,158 +1,242 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Absensi Payboss Cafe</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Absensi Payboss Cafe — FIX</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
   <style>
-    body { font-family: 'Inter', sans-serif; }
-    #map { height: 250px; }
-    .hidden { display: none; }
+    body{font-family:'Inter',sans-serif}
+    #map{height:260px}
+    .log{white-space:pre-wrap;font-family:ui-monospace,Menlo,Consolas,monospace}
   </style>
 </head>
 <body class="bg-gray-100">
   <div class="max-w-md mx-auto p-4">
-    <h1 class="text-2xl font-bold text-center mb-2">Absensi Payboss Cafe</h1>
-    <p class="text-center text-xs text-gray-500 mb-4">Pastikan situs diakses melalui HTTPS agar GPS presisi.</p>
+    <h1 class="text-2xl font-bold text-center">Absensi Payboss Cafe</h1>
+    <p class="text-center text-[11px] text-gray-500 mb-4">Gunakan HTTPS dan izinkan <b>Precise Location</b>.</p>
 
-    <div class="mb-3">
+    <!-- Server status / diagnostics -->
+    <div class="p-3 rounded border bg-white mb-3">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-xs text-gray-600">Server</p>
+          <p id="server-status" class="text-sm font-semibold">Menyambungkan...</p>
+        </div>
+        <button id="retry-server" class="text-xs px-2 py-1 rounded bg-indigo-600 text-white">Coba Lagi</button>
+      </div>
+      <p id="server-detail" class="text-[11px] text-gray-500 mt-1"></p>
+    </div>
+
+    <!-- Employee -->
+    <div class="mb-4">
       <label class="text-sm font-medium">Pilih Nama Karyawan</label>
-      <select id="employee-select" class="w-full border rounded p-2">
-        <option>Memuat...</option>
+      <select id="employee" class="w-full border rounded p-2 mt-1">
+        <option value="">Memuat...</option>
       </select>
     </div>
 
-    <div class="p-3 bg-blue-50 rounded mb-4">
-      <p id="gps-status" class="text-sm font-semibold text-blue-700">Mencari lokasi...</p>
-      <p id="distance-info" class="text-xs text-gray-600"></p>
+    <!-- GPS -->
+    <div class="p-3 rounded bg-blue-50 mb-4">
+      <div class="flex items-center justify-between">
+        <p id="gps-status" class="text-sm font-semibold text-blue-700">Menunggu izin lokasi...</p>
+        <span id="gps-acc" class="text-[10px] px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 hidden"></span>
+      </div>
+      <p id="gps-info" class="text-xs text-gray-600"></p>
       <div class="flex gap-2 mt-2">
-        <button id="check-location-btn" class="flex-1 bg-white border text-blue-700 rounded p-2 text-sm">Lihat Peta</button>
-        <button id="calibrate-btn" class="flex-1 bg-white border text-amber-700 rounded p-2 text-sm">Kalibrasi Ulang</button>
+        <button id="btn-map" class="flex-1 bg-white border text-blue-700 rounded p-2 text-sm">Lihat Peta</button>
+        <button id="btn-gps" class="flex-1 bg-white border text-amber-700 rounded p-2 text-sm">Kalibrasi Ulang</button>
       </div>
     </div>
 
+    <!-- Actions -->
     <div class="grid grid-cols-2 gap-3">
-      <button id="absen-masuk" class="bg-green-600 text-white p-3 rounded">Absen Masuk</button>
-      <button id="absen-pulang" class="bg-red-600 text-white p-3 rounded">Absen Pulang</button>
-      <button id="absen-sakit" class="bg-yellow-500 text-white p-3 rounded">Sakit</button>
-      <button id="absen-ijin" class="bg-blue-500 text-white p-3 rounded">Ijin</button>
+      <button id="btn-masuk" class="bg-green-600 text-white p-3 rounded">Absen Masuk</button>
+      <button id="btn-pulang" class="bg-red-600 text-white p-3 rounded">Absen Pulang</button>
+      <button id="btn-sakit" class="bg-yellow-500 text-white p-3 rounded">Sakit</button>
+      <button id="btn-ijin" class="bg-blue-500 text-white p-3 rounded">Ijin</button>
     </div>
 
-    <p id="absensi-message" class="text-center text-sm mt-4"></p>
+    <p id="msg" class="text-center text-sm mt-4"></p>
+
+    <!-- Advanced diagnostics (expandable) -->
+    <details class="mt-4">
+      <summary class="text-xs text-gray-600 cursor-pointer">Lihat log diagnosa</summary>
+      <pre id="log" class="log text-[11px] p-2 bg-white border rounded mt-2"></pre>
+    </details>
   </div>
 
-  <div id="map-modal" class="hidden fixed inset-0 bg-black/70 flex justify-center items-center">
-    <div class="bg-white rounded-lg p-3 w-11/12 max-w-lg">
-      <div id="map" class="rounded mb-3"></div>
-      <button id="close-map" class="bg-gray-700 text-white w-full p-2 rounded">Tutup</button>
+  <!-- Map modal -->
+  <div id="map-modal" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center p-3">
+    <div class="bg-white rounded p-3 w-11/12 max-w-lg">
+      <div id="map" class="rounded"></div>
+      <button id="close-map" class="mt-3 w-full bg-gray-700 text-white p-2 rounded">Tutup</button>
     </div>
   </div>
 
   <script>
+    // ===== KONFIGURASI =====
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzps8knJrgpD_kl25oo_R7abFV1QC8S4OJ_NF4hFw9_cLIlHkcvAAPiaYT4PigF7p9XGA/exec";
-    const CAFE_LAT = -8.679199;
+    // TODO: UBAH KE KOORDINAT KAFE SEBENARNYA
+    const CAFE_LAT = -8.679199; // Bali (contoh)
     const CAFE_LON = 115.223842;
-    const MAX_DISTANCE = 50;
-    let currentPos = null;
+    const RADIUS_M = 50;
 
-    const select = document.getElementById('employee-select');
-    const statusEl = document.getElementById('gps-status');
-    const distanceInfo = document.getElementById('distance-info');
-    const msgEl = document.getElementById('absensi-message');
+    // ===== Elements =====
+    const elServer = document.getElementById('server-status');
+    const elServerDetail = document.getElementById('server-detail');
+    const elRetryServer = document.getElementById('retry-server');
 
-    async function loadEmployees(){
-      try {
-        const res = await fetch(`${SCRIPT_URL}?action=getEmployees`);
-        const json = await res.json();
-        if(json.success){
-          select.innerHTML = '<option value="">-- Pilih Karyawan --</option>';
-          json.data.forEach(n => {
-            const opt = document.createElement('option');
-            opt.value = n; opt.textContent = n;
-            select.appendChild(opt);
-          });
-        } else select.innerHTML = '<option>Error memuat data</option>';
-      } catch(e){
-        select.innerHTML = '<option>Gagal koneksi ke server</option>';
-      }
-    }
+    const elEmployee = document.getElementById('employee');
+    const elMsg = document.getElementById('msg');
 
-    async function getLocation(){
-      statusEl.textContent = 'Mencari lokasi...';
-      navigator.geolocation.getCurrentPosition(pos=>{
-        const {latitude, longitude, accuracy} = pos.coords;
-        currentPos = {latitude, longitude, accuracy};
-        const dist = distance(latitude, longitude, CAFE_LAT, CAFE_LON);
-        distanceInfo.textContent = `Jarak ke kafe: ${Math.round(dist)} m (akurasi ±${Math.round(accuracy)} m)`;
-        if(dist <= MAX_DISTANCE){
-          statusEl.textContent = 'Dalam Jangkauan';
-          statusEl.className = 'text-sm font-semibold text-green-700';
-        } else {
-          statusEl.textContent = 'Di Luar Jangkauan';
-          statusEl.className = 'text-sm font-semibold text-red-700';
-        }
-      }, err=>{
-        statusEl.textContent = 'Gagal dapat lokasi';
-      }, {enableHighAccuracy:true, timeout:10000});
-    }
+    const elGpsStatus = document.getElementById('gps-status');
+    const elGpsInfo = document.getElementById('gps-info');
+    const elGpsAcc = document.getElementById('gps-acc');
 
-    function distance(lat1,lon1,lat2,lon2){
-      const R = 6371e3;
-      const φ1 = lat1*Math.PI/180, φ2 = lat2*Math.PI/180;
-      const Δφ = (lat2-lat1)*Math.PI/180;
-      const Δλ = (lon2-lon1)*Math.PI/180;
-      const a = Math.sin(Δφ/2)**2 + Math.cos(φ1)*Math.cos(φ2)*Math.sin(Δλ/2)**2;
+    const logEl = document.getElementById('log');
+
+    // ===== Helpers =====
+    const log = (...a) => { console.log(...a); logEl.textContent += a.map(x=>typeof x==='string'?x:JSON.stringify(x)).join(' ') + "\n"; };
+    const fmt = n => Number.isFinite(n) ? Math.round(n) : '-';
+    const dist = (lat1, lon1, lat2, lon2) => {
+      const R = 6371e3; const toRad = d => d*Math.PI/180;
+      const dLat = toRad(lat2-lat1), dLon = toRad(lon2-lon1);
+      const a = Math.sin(dLat/2)**2 + Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLon/2)**2;
       return R*2*Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-    }
+    };
 
-    async function submitAbsen(tipe){
-      const user = select.value;
-      if(!user) return alert('Pilih nama terlebih dahulu!');
-      msgEl.textContent = 'Mengirim data...';
+    // ===== Server check + load employees =====
+    async function checkServerAndLoadEmployees(){
+      elServer.textContent = 'Menyambungkan...'; elServer.className = 'text-sm font-semibold text-gray-800';
       try{
-        const form = new FormData();
-        form.append('action','submitAbsen');
-        form.append('username',user);
-        form.append('tipe',tipe);
-        if(currentPos){
-          form.append('lat',currentPos.latitude);
-          form.append('lon',currentPos.longitude);
-        }
-        const res = await fetch(SCRIPT_URL,{method:'POST',body:form});
+        const controller = new AbortController();
+        const t = setTimeout(()=>controller.abort(), 10000);
+        const res = await fetch(`${SCRIPT_URL}?action=getEmployees`, { signal: controller.signal, cache: 'no-store' });
+        clearTimeout(t);
+        log('GET /getEmployees status:', res.status);
+        if(!res.ok) throw new Error('HTTP '+res.status);
         const json = await res.json();
-        msgEl.textContent = json.message;
-        msgEl.className = json.success ? 'text-center text-green-600 text-sm' : 'text-center text-red-600 text-sm';
+        log('Response:', json);
+        if(json.success){
+          elServer.textContent = 'Terhubung'; elServer.className = 'text-sm font-semibold text-green-700';
+          elServerDetail.textContent = '';
+          elEmployee.innerHTML = '<option value="">-- Pilih Karyawan --</option>';
+          json.data.forEach(n=>{ const o=document.createElement('option'); o.value=n; o.textContent=n; elEmployee.appendChild(o); });
+        } else {
+          throw new Error(json.message || 'Respon tidak valid');
+        }
       }catch(err){
-        msgEl.textContent = 'Gagal kirim data';
-        msgEl.className = 'text-center text-red-600 text-sm';
+        elServer.textContent = 'Gagal tersambung'; elServer.className = 'text-sm font-semibold text-red-700';
+        elServerDetail.textContent = 'Detail: '+err.message+' — Pastikan Web App sudah Deploy (Anyone with the link) dan URL benar.';
+        elEmployee.innerHTML = '<option value="">Gagal koneksi ke server</option>';
+        log('Server error:', err);
       }
     }
 
-    document.getElementById('absen-masuk').onclick=()=>submitAbsen('masuk');
-    document.getElementById('absen-pulang').onclick=()=>submitAbsen('pulang');
-    document.getElementById('absen-sakit').onclick=()=>submitAbsen('sakit');
-    document.getElementById('absen-ijin').onclick=()=>submitAbsen('ijin');
-    document.getElementById('calibrate-btn').onclick=getLocation;
+    elRetryServer.addEventListener('click', checkServerAndLoadEmployees);
+
+    // ===== GPS =====
+    let lastPos = null; let mapObj = null; let mapInited = false;
+
+    async function getBestPosition(){
+      return new Promise((resolve, reject)=>{
+        if(!navigator.geolocation) return reject(new Error('Geolocation tidak didukung'));
+        let best=null; let count=0; const MAX_SAMPLES=6; const MAX_WAIT=12000;
+        const id = navigator.geolocation.watchPosition(p=>{
+          count++; if(!best || p.coords.accuracy < best.coords.accuracy) best=p;
+          if(best.coords.accuracy <= 25 || count>=MAX_SAMPLES){ navigator.geolocation.clearWatch(id); resolve(best); }
+        }, err=>{
+          navigator.geolocation.clearWatch(id);
+          navigator.geolocation.getCurrentPosition(resolve, reject, {enableHighAccuracy:true, timeout:MAX_WAIT, maximumAge:0});
+        }, {enableHighAccuracy:true, timeout:MAX_WAIT, maximumAge:0});
+        setTimeout(()=>{ try{navigator.geolocation.clearWatch(id);}catch{}; best?resolve(best):reject(new Error('Timeout lokasi')); }, MAX_WAIT);
+      });
+    }
+
+    async function updateGPS(){
+      elGpsStatus.textContent = 'Mencari lokasi...'; elGpsStatus.className = 'text-sm font-semibold text-blue-700';
+      elGpsAcc.classList.add('hidden'); elGpsInfo.textContent = 'Jika diminta izin, pilih Allow dan aktifkan Precise.';
+      try{
+        const pos = await getBestPosition();
+        lastPos = pos;
+        const {latitude, longitude, accuracy} = pos.coords;
+        const d = dist(latitude, longitude, CAFE_LAT, CAFE_LON);
+        elGpsAcc.textContent = `±${fmt(accuracy)} m`; elGpsAcc.classList.remove('hidden');
+        elGpsInfo.textContent = `Jarak ke kafe: ${fmt(d)} m (akurasi ±${fmt(accuracy)} m)`;
+        if(d <= RADIUS_M){ elGpsStatus.textContent='Dalam Jangkauan'; elGpsStatus.className='text-sm font-semibold text-green-700'; }
+        else { elGpsStatus.textContent='Di Luar Jangkauan'; elGpsStatus.className='text-sm font-semibold text-red-700'; }
+      }catch(err){
+        elGpsStatus.textContent = 'Gagal mendapatkan lokasi'; elGpsStatus.className = 'text-sm font-semibold text-red-700';
+        elGpsInfo.textContent = 'Aktifkan lokasi presisi di pengaturan browser/OS, lalu coba lagi.';
+        log('GPS error:', err);
+      }
+    }
+
+    document.getElementById('btn-gps').addEventListener('click', updateGPS);
 
     // Map
-    const mapModal=document.getElementById('map-modal');
-    const closeMap=document.getElementById('close-map');
-    document.getElementById('check-location-btn').onclick=()=>{
-      if(!currentPos) return alert('Lokasi belum ditemukan!');
-      mapModal.classList.remove('hidden');
-      const map=L.map('map').setView([CAFE_LAT,CAFE_LON],15);
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(map);
-      L.marker([CAFE_LAT,CAFE_LON]).addTo(map).bindPopup('Payboss Cafe');
-      L.marker([currentPos.latitude,currentPos.longitude]).addTo(map).bindPopup('Lokasi Anda');
-    };
-    closeMap.onclick=()=>mapModal.classList.add('hidden');
+    const modal = document.getElementById('map-modal');
+    document.getElementById('btn-map').addEventListener('click', ()=>{
+      if(!lastPos) return alert('Lokasi belum tersedia. Klik Kalibrasi Ulang dulu.');
+      modal.classList.remove('hidden');
+      setTimeout(()=>{
+        const {latitude, longitude}=lastPos.coords;
+        // inisialisasi ulang kontainer peta agar tidak dobel
+        const mapDiv = document.getElementById('map');
+        mapDiv.innerHTML = '';
+        mapObj = L.map('map').setView([latitude, longitude], 15);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(mapObj);
+        L.marker([CAFE_LAT, CAFE_LON]).addTo(mapObj).bindPopup('Payboss Cafe');
+        L.marker([latitude, longitude]).addTo(mapObj).bindPopup('Lokasi Anda');
+        const bounds = L.latLngBounds([ [CAFE_LAT, CAFE_LON], [latitude, longitude] ]);
+        mapObj.fitBounds(bounds.pad(0.3));
+      }, 50);
+    });
+    document.getElementById('close-map').addEventListener('click', ()=> modal.classList.add('hidden'));
 
-    loadEmployees();
-    getLocation();
+    // ===== Submit =====
+    async function submitAbsen(type){
+      const user = elEmployee.value; if(!user) return alert('Pilih nama dulu.');
+      elMsg.textContent = 'Mengirim...'; elMsg.className = 'text-center text-gray-700 text-sm';
+      try{
+        const fd = new URLSearchParams();
+        fd.append('action','submitAbsen');
+        fd.append('username', user);
+        fd.append('tipe', type);
+        if(lastPos){ fd.append('lat', lastPos.coords.latitude); fd.append('lon', lastPos.coords.longitude); }
+        const controller = new AbortController(); const t=setTimeout(()=>controller.abort(), 12000);
+        const res = await fetch(SCRIPT_URL, { method:'POST', body: fd, signal: controller.signal });
+        clearTimeout(t);
+        if(!res.ok) throw new Error('HTTP '+res.status);
+        const json = await res.json();
+        elMsg.textContent = json.message || (json.success?'Berhasil':'Gagal');
+        elMsg.className = 'text-center text-sm ' + (json.success ? 'text-green-600':'text-red-600');
+        log('submitAbsen response:', json);
+      }catch(err){
+        elMsg.textContent = 'Gagal kirim: '+err.message+" — cek CORS/Deploy & koneksi.";
+        elMsg.className = 'text-center text-sm text-red-600';
+        log('submitAbsen error:', err);
+      }
+    }
+
+    document.getElementById('btn-masuk').addEventListener('click', ()=>submitAbsen('masuk'));
+    document.getElementById('btn-pulang').addEventListener('click', ()=>submitAbsen('pulang'));
+    document.getElementById('btn-sakit').addEventListener('click', ()=>submitAbsen('sakit'));
+    document.getElementById('btn-ijin').addEventListener('click', ()=>submitAbsen('ijin'));
+
+    // ===== Init =====
+    document.addEventListener('DOMContentLoaded', ()=>{
+      if(location.protocol!=='https:' && location.hostname!=='localhost'){
+        elServerDetail.textContent = 'Peringatan: Situs tidak melalui HTTPS. Beberapa device menolak GPS presisi.';
+      }
+      checkServerAndLoadEmployees();
+      // Geolocation pada iOS/Android kadang butuh gesture; tombol Kalibrasi tersedia.
+      updateGPS();
+    });
   </script>
 </body>
 </html>
