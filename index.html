@@ -23,7 +23,7 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
-        #camera-view.hidden {
+        .modal.hidden {
             display: none;
         }
         #attendance-section.disabled, #roster-selection.hidden {
@@ -84,6 +84,7 @@
                         <button id="refresh-gps-btn" class="hidden text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-md">Coba Lagi</button>
                     </div>
                     <p id="distance-info" class="text-xs text-blue-600"></p>
+                    <button id="check-location-btn" class="mt-2 w-full text-center py-2 px-4 border border-blue-300 rounded-md shadow-sm text-sm font-medium text-blue-700 bg-white hover:bg-blue-50">Cek Lokasi Saya di Peta</button>
                 </div>
                 
                 <div class="grid grid-cols-2 gap-4">
@@ -95,22 +96,6 @@
                 <p id="absensi-message" class="mt-4 text-center text-sm"></p>
             </div>
             
-            <!-- Map Section -->
-            <div class="mt-8 border-t pt-6">
-                <h3 class="text-lg font-semibold text-center mb-4">Lokasi Cafe</h3>
-                <div class="aspect-w-16 aspect-h-9 rounded-lg overflow-hidden">
-                     <iframe 
-                        src="https://maps.google.com/maps?q=-8.679199,115.223842&z=17&output=embed"
-                        width="100%" 
-                        height="250" 
-                        style="border:0;" 
-                        allowfullscreen="" 
-                        loading="lazy" 
-                        referrerpolicy="no-referrer-when-downgrade">
-                    </iframe>
-                </div>
-            </div>
-
              <!-- Manager Access -->
             <div class="mt-8 border-t pt-6">
                  <button id="manager-access-btn" class="w-full text-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">Dasbor Manajer</button>
@@ -138,13 +123,23 @@
             <div id="report-results" class="mt-6 space-y-6"></div>
         </div>
 
-        <!-- Camera View -->
-        <div id="camera-view" class="hidden fixed inset-0 bg-black z-40 flex flex-col items-center justify-center p-4">
+        <!-- Camera Modal -->
+        <div id="camera-modal" class="modal hidden fixed inset-0 bg-black z-40 flex flex-col items-center justify-center p-4">
             <video id="video-feed" autoplay playsinline class="w-full max-w-md rounded-lg"></video>
             <canvas id="canvas" class="hidden"></canvas>
             <div class="absolute bottom-4 left-4 right-4 flex justify-center space-x-4">
                 <button id="capture-btn" class="w-16 h-16 bg-white rounded-full border-4 border-gray-300 focus:outline-none"></button>
                 <button id="cancel-capture-btn" class="absolute right-4 px-4 py-2 bg-red-600 text-white rounded-lg">Batal</button>
+            </div>
+        </div>
+        
+        <!-- Map Modal -->
+        <div id="map-modal" class="modal hidden fixed inset-0 bg-black bg-opacity-75 z-40 flex items-center justify-center p-4">
+             <div class="bg-white rounded-lg w-full max-w-lg p-4">
+                 <h3 class="text-xl font-bold mb-4">Peta Lokasi</h3>
+                 <div id="map-container" class="w-full h-64 bg-gray-200 rounded-md"></div>
+                 <p class="text-xs mt-2 text-gray-600">Pin Merah: Lokasi Cafe. Pin Biru: Lokasi Anda Saat Ini.</p>
+                 <button id="close-map-btn" class="mt-4 w-full py-2 px-4 bg-gray-600 text-white rounded-md">Tutup</button>
             </div>
         </div>
 
@@ -168,6 +163,8 @@
         const gpsStatus = document.getElementById('gps-status');
         const distanceInfo = document.getElementById('distance-info');
         const refreshGpsBtn = document.getElementById('refresh-gps-btn');
+        const checkLocationBtn = document.getElementById('check-location-btn');
+
         const absenMasukBtn = document.getElementById('absen-masuk-btn');
         const absenPulangBtn = document.getElementById('absen-pulang-btn');
         const absenSakitBtn = document.getElementById('absen-sakit-btn');
@@ -181,14 +178,18 @@
         const showReportBtn = document.getElementById('show-report-btn');
         const reportResults = document.getElementById('report-results');
         
-        const cameraView = document.getElementById('camera-view');
+        const cameraModal = document.getElementById('camera-modal');
         const videoFeed = document.getElementById('video-feed');
         const canvas = document.getElementById('canvas');
         const captureBtn = document.getElementById('capture-btn');
         const cancelCaptureBtn = document.getElementById('cancel-capture-btn');
         
+        const mapModal = document.getElementById('map-modal');
+        const mapContainer = document.getElementById('map-container');
+        const closeMapBtn = document.getElementById('close-map-btn');
+        
         // --- KONFIGURASI ---
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwHNWN8oivfISzvdLyW7xHe-JJ1psYrdm0F3mU9SZ46LkueeOsuOilREZal_akRPSoaeg/exec";
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzjBMbWwytId6_DOZaEsNCSAccr104QdOB4GVSoSuZ_xi0JInulc3M4AUwfA7dQ_NAQAQ/exec";
         const CAFE_LAT = -8.679199;
         const CAFE_LON = 115.223842;
         const MAX_DISTANCE_METERS = 50;
@@ -196,6 +197,7 @@
         let selectedUser = null;
         let stream = null;
         let absenTipe = '';
+        let lastKnownPosition = null;
 
         // --- FUNCTIONS ---
         
@@ -318,6 +320,7 @@
 
             navigator.geolocation.getCurrentPosition(
                 (position) => {
+                    lastKnownPosition = position;
                     const lat = position.coords.latitude;
                     const lon = position.coords.longitude;
                     const accuracy = position.coords.accuracy;
@@ -354,6 +357,28 @@
             );
         }
         
+        function showMap() {
+            if (!lastKnownPosition) {
+                alert("Lokasi Anda belum ditemukan. Mohon tunggu atau coba lagi.");
+                return;
+            }
+            const userLat = lastKnownPosition.coords.latitude;
+            const userLon = lastKnownPosition.coords.longitude;
+            
+            const iframe = document.createElement('iframe');
+            iframe.src = `https://maps.google.com/maps?q=${CAFE_LAT},${CAFE_LON}&ll=${userLat},${userLon}&z=15&output=embed`;
+            iframe.width = "100%";
+            iframe.height = "100%";
+            iframe.style.border = "0";
+            iframe.allowFullscreen = true;
+            iframe.loading = "lazy";
+
+            mapContainer.innerHTML = ''; // Clear previous map
+            mapContainer.appendChild(iframe);
+            
+            mapModal.classList.remove('hidden');
+        }
+
         async function startCamera(tipe) {
             if (!selectedUser) {
                 absensiMessage.textContent = 'Pilih nama Anda terlebih dahulu.';
@@ -364,7 +389,7 @@
             try {
                 stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false });
                 videoFeed.srcObject = stream;
-                cameraView.classList.remove('hidden');
+                cameraModal.classList.remove('hidden');
             } catch (err) {
                 absensiMessage.textContent = 'Error: Tidak bisa mengakses kamera. Pastikan Anda memberikan izin.';
                 absensiMessage.className = 'mt-4 text-center text-sm text-red-600';
@@ -375,7 +400,7 @@
             if (stream) {
                 stream.getTracks().forEach(track => track.stop());
             }
-            cameraView.classList.add('hidden');
+            cameraModal.classList.add('hidden');
         }
 
         async function capturePhoto() {
@@ -517,6 +542,9 @@
         
         captureBtn.addEventListener('click', capturePhoto);
         cancelCaptureBtn.addEventListener('click', stopCamera);
+        
+        checkLocationBtn.addEventListener('click', showMap);
+        closeMapBtn.addEventListener('click', () => mapModal.classList.add('hidden'));
 
         managerAccessBtn.addEventListener('click', showManagerDashboard);
         backToMainBtn.addEventListener('click', showMainPage);
