@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Absensi Karyawan - Payboss Cafe</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .loader {
+            border-top-color: #3498db;
+            -webkit-animation: spinner 1.5s linear infinite;
+            animation: spinner 1.5s linear infinite;
+        }
+        @-webkit-keyframes spinner {
+            0% { -webkit-transform: rotate(0deg); }
+            100% { -webkit-transform: rotate(360deg); }
+        }
+        @keyframes spinner {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        #camera-view.hidden {
+            display: none;
+        }
+        #attendance-section.disabled {
+            opacity: 0.5;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800">
+
+    <div id="app" class="max-w-md mx-auto min-h-screen bg-white shadow-lg">
+
+        <!-- Loading Spinner -->
+        <div id="loading" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div class="bg-white p-5 rounded-lg flex flex-col items-center">
+                <div class="loader ease-linear rounded-full border-8 border-t-8 border-gray-200 h-16 w-16 mb-4"></div>
+                <p id="loading-text" class="text-lg font-medium">Memuat...</p>
+            </div>
+        </div>
+        
+        <!-- Main Page -->
+        <div id="main-page" class="p-6 md:p-8">
+            <div class="text-center mb-6">
+                <h1 class="text-3xl font-bold text-gray-900">Absensi Payboss Cafe</h1>
+            </div>
+
+            <!-- Employee Selection -->
+            <div class="mb-6">
+                <label for="employee-select" class="block text-sm font-medium text-gray-700 mb-1">Pilih Nama Karyawan</label>
+                <select id="employee-select" class="block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                    <option value="">-- Memuat Karyawan --</option>
+                </select>
+            </div>
+
+            <!-- Attendance Section -->
+            <div id="attendance-section" class="disabled space-y-6">
+                 <div class="bg-indigo-50 p-4 rounded-lg">
+                    <p id="roster-info" class="text-sm text-center font-medium text-indigo-800">Pilih nama untuk melihat jadwal.</p>
+                </div>
+                 <div class="bg-blue-50 p-4 rounded-lg">
+                    <div class="flex justify-between items-center">
+                        <p class="text-sm font-medium text-blue-800">Status GPS: <span id="gps-status" class="font-bold">Mencari lokasi...</span></p>
+                        <button id="refresh-gps-btn" class="hidden text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-md">Coba Lagi</button>
+                    </div>
+                    <p id="distance-info" class="text-xs text-blue-600"></p>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-4">
+                    <button id="absen-masuk-btn" class="w-full py-3 px-4 rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 font-medium">Absen Masuk</button>
+                    <button id="absen-pulang-btn" class="w-full py-3 px-4 rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 font-medium">Absen Pulang</button>
+                    <button id="absen-sakit-btn" class="w-full py-3 px-4 rounded-md shadow-sm text-white bg-yellow-500 hover:bg-yellow-600 font-medium">Sakit</button>
+                    <button id="absen-ijin-btn" class="w-full py-3 px-4 rounded-md shadow-sm text-white bg-blue-500 hover:bg-blue-600 font-medium">Ijin</button>
+                </div>
+                <p id="absensi-message" class="mt-4 text-center text-sm"></p>
+            </div>
+            
+             <!-- Manager Access -->
+            <div class="mt-8 border-t pt-6">
+                 <button id="manager-access-btn" class="w-full text-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">Dasbor Manajer</button>
+            </div>
+        </div>
+
+
+        <!-- Manager Page -->
+        <div id="manager-page" class="hidden p-6 md:p-8">
+             <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold">Dasbor Manajer</h2>
+                <button id="back-to-main-btn" class="text-sm text-indigo-600 hover:text-indigo-800 font-medium">Kembali</button>
+            </div>
+            <a id="googleSheetLink" href="#" target="_blank" class="block w-full text-center mb-6 py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-gray-600 hover:bg-gray-700">Buka Google Sheet</a>
+            
+            <div class="bg-gray-50 p-4 rounded-lg">
+                <h3 class="text-lg font-semibold mb-2">Laporan Harian</h3>
+                <div class="mb-4">
+                    <label for="report-date" class="block text-sm font-medium text-gray-700">Pilih Tanggal</label>
+                    <input type="date" id="report-date" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                </div>
+                 <button id="show-report-btn" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700">Tampilkan</button>
+            </div>
+
+            <div id="report-results" class="mt-6 space-y-6"></div>
+        </div>
+
+        <!-- Camera View -->
+        <div id="camera-view" class="hidden fixed inset-0 bg-black z-40 flex flex-col items-center justify-center p-4">
+            <video id="video-feed" autoplay playsinline class="w-full max-w-md rounded-lg"></video>
+            <canvas id="canvas" class="hidden"></canvas>
+            <div class="absolute bottom-4 left-4 right-4 flex justify-center space-x-4">
+                <button id="capture-btn" class="w-16 h-16 bg-white rounded-full border-4 border-gray-300 focus:outline-none"></button>
+                <button id="cancel-capture-btn" class="absolute right-4 px-4 py-2 bg-red-600 text-white rounded-lg">Batal</button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // --- ELEMENT SELECTORS ---
+        const loading = document.getElementById('loading');
+        const loadingText = document.getElementById('loading-text');
+        
+        const mainPage = document.getElementById('main-page');
+        const managerPage = document.getElementById('manager-page');
+        
+        const employeeSelect = document.getElementById('employee-select');
+        const attendanceSection = document.getElementById('attendance-section');
+        const rosterInfo = document.getElementById('roster-info');
+        const gpsStatus = document.getElementById('gps-status');
+        const distanceInfo = document.getElementById('distance-info');
+        const refreshGpsBtn = document.getElementById('refresh-gps-btn');
+        const absenMasukBtn = document.getElementById('absen-masuk-btn');
+        const absenPulangBtn = document.getElementById('absen-pulang-btn');
+        const absenSakitBtn = document.getElementById('absen-sakit-btn');
+        const absenIjinBtn = document.getElementById('absen-ijin-btn');
+        const absensiMessage = document.getElementById('absensi-message');
+        const managerAccessBtn = document.getElementById('manager-access-btn');
+        
+        const backToMainBtn = document.getElementById('back-to-main-btn');
+        const googleSheetLink = document.getElementById('googleSheetLink');
+        const reportDateInput = document.getElementById('report-date');
+        const showReportBtn = document.getElementById('show-report-btn');
+        const reportResults = document.getElementById('report-results');
+        
+        const cameraView = document.getElementById('camera-view');
+        const videoFeed = document.getElementById('video-feed');
+        const canvas = document.getElementById('canvas');
+        const captureBtn = document.getElementById('capture-btn');
+        const cancelCaptureBtn = document.getElementById('cancel-capture-btn');
+        
+        // --- KONFIGURASI ---
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzgiMcIbpuS0_QmJjPJkWbsjw9vOUbwP073yGXAcmt28caFW7_b30zOX0SAZstBsrK6xQ/exec";
+        const CAFE_LAT = -8.679199;
+        const CAFE_LON = 115.223842;
+        const MAX_DISTANCE_METERS = 50;
+        
+        let selectedUser = null;
+        let stream = null;
+        let absenTipe = '';
+
+        // --- FUNCTIONS ---
+        
+        function showLoading(text = 'Memuat...') {
+            loadingText.textContent = text;
+            loading.classList.remove('hidden');
+        }
+
+        function hideLoading() {
+            loading.classList.add('hidden');
+        }
+
+        async function fetchEmployees() {
+            showLoading('Memuat daftar karyawan...');
+            try {
+                const response = await fetch(`${SCRIPT_URL}?action=getEmployees`);
+                const result = await response.json();
+                if (result.success && result.data.length > 0) {
+                    populateEmployeeDropdown(result.data);
+                } else {
+                    employeeSelect.innerHTML = `<option value="">Gagal memuat karyawan. Cek Google Script.</option>`;
+                }
+            } catch (error) {
+                console.error("Fetch employees error:", error);
+                employeeSelect.innerHTML = `<option value="">Error jaringan. Periksa koneksi Anda.</option>`;
+            } finally {
+                hideLoading();
+            }
+        }
+
+        function populateEmployeeDropdown(employees) {
+            employeeSelect.innerHTML = '<option value="">-- Pilih Nama Anda --</option>';
+            employees.forEach(name => {
+                const option = document.createElement('option');
+                option.value = name;
+                option.textContent = name;
+                employeeSelect.appendChild(option);
+            });
+        }
+        
+        async function onEmployeeSelect(event) {
+            selectedUser = event.target.value;
+            absensiMessage.textContent = '';
+            if (selectedUser) {
+                attendanceSection.classList.remove('disabled');
+                rosterInfo.textContent = 'Memuat jadwal...';
+                await fetchRosterInfo(selectedUser);
+            } else {
+                attendanceSection.classList.add('disabled');
+                rosterInfo.textContent = 'Pilih nama untuk melihat jadwal.';
+            }
+        }
+
+        async function fetchRosterInfo(username) {
+            try {
+                const response = await fetch(`${SCRIPT_URL}?action=getRoster&username=${username}`);
+                const result = await response.json();
+                if (result.success && result.jadwal) {
+                    rosterInfo.textContent = `Jadwal hari ini: Masuk jam ${result.jadwal}`;
+                } else {
+                    rosterInfo.textContent = `Tidak ada jadwal khusus hari ini.`;
+                }
+            } catch (error) {
+                rosterInfo.textContent = 'Gagal memuat jadwal.';
+            }
+        }
+
+        function checkInitialGPS() {
+            gpsStatus.textContent = "Mencari lokasi...";
+            gpsStatus.className = 'font-bold text-blue-800';
+            distanceInfo.textContent = "";
+            refreshGpsBtn.classList.add('hidden');
+
+            if (!navigator.geolocation) {
+                gpsStatus.textContent = "Tidak Didukung";
+                distanceInfo.textContent = "Browser Anda tidak mendukung Geolocation.";
+                return;
+            }
+
+            let watchId;
+            let timeoutId;
+
+            const handleGpsError = (message) => {
+                navigator.geolocation.clearWatch(watchId);
+                clearTimeout(timeoutId);
+                gpsStatus.textContent = "Gagal";
+                gpsStatus.className = 'font-bold text-red-700';
+                distanceInfo.textContent = message;
+                refreshGpsBtn.classList.remove('hidden');
+            };
+            
+            timeoutId = setTimeout(() => {
+                handleGpsError("Waktu permintaan lokasi habis. Periksa sinyal & izin.");
+            }, 25000);
+
+            watchId = navigator.geolocation.watchPosition(
+                (position) => {
+                    navigator.geolocation.clearWatch(watchId);
+                    clearTimeout(timeoutId);
+
+                    const lat = position.coords.latitude;
+                    const lon = position.coords.longitude;
+                    const distance = getDistanceFromLatLonInM(lat, lon, CAFE_LAT, CAFE_LON);
+                    
+                    if (distance <= MAX_DISTANCE_METERS) {
+                        gpsStatus.textContent = "Dalam Jangkauan";
+                        gpsStatus.className = 'font-bold text-green-700';
+                    } else {
+                        gpsStatus.textContent = "Di Luar Jangkauan";
+                        gpsStatus.className = 'font-bold text-red-700';
+                    }
+                    distanceInfo.textContent = `Jarak dari lokasi: ${distance.toFixed(0)} meter.`;
+                },
+                (error) => {
+                    let message = "Gagal mendapatkan lokasi. Pastikan izin lokasi aktif.";
+                    if (error.code === error.PERMISSION_DENIED) {
+                        message = "Anda menolak izin lokasi. Aktifkan di pengaturan browser.";
+                    }
+                    handleGpsError(message);
+                },
+                { enableHighAccuracy: true, maximumAge: 0 }
+            );
+        }
+        
+        async function startCamera(tipe) {
+            if (!selectedUser) {
+                absensiMessage.textContent = 'Pilih nama Anda terlebih dahulu.';
+                absensiMessage.className = 'mt-4 text-center text-sm text-red-600';
+                return;
+            }
+            absenTipe = tipe;
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false });
+                videoFeed.srcObject = stream;
+                cameraView.classList.remove('hidden');
+            } catch (err) {
+                absensiMessage.textContent = 'Error: Tidak bisa mengakses kamera. Pastikan Anda memberikan izin.';
+                absensiMessage.className = 'mt-4 text-center text-sm text-red-600';
+            }
+        }
+        
+        function stopCamera() {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+            }
+            cameraView.classList.add('hidden');
+        }
+
+        async function capturePhoto() {
+            showLoading('Mengambil foto & lokasi...');
+            canvas.width = videoFeed.videoWidth;
+            canvas.height = videoFeed.videoHeight;
+            canvas.getContext('2d').drawImage(videoFeed, 0, 0, canvas.width, canvas.height);
+            const imageData = canvas.toDataURL('image/jpeg');
+            stopCamera();
+
+            try {
+                const position = await new Promise((resolve, reject) => {
+                    navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 });
+                });
+                const { latitude, longitude } = position.coords;
+                const result = await submitAbsen(absenTipe, imageData, latitude, longitude);
+                
+                absensiMessage.textContent = result.message;
+                absensiMessage.className = `mt-4 text-center text-sm ${result.success ? 'text-green-600' : 'text-red-600'}`;
+            } catch (error) {
+                 let message = 'Gagal mendapatkan lokasi GPS. Pastikan izin lokasi aktif dan coba lagi.';
+                 if(error.code === error.TIMEOUT) {
+                     message = 'Waktu permintaan lokasi habis. Pastikan sinyal GPS kuat.';
+                 }
+                 absensiMessage.textContent = message;
+                 absensiMessage.className = 'mt-4 text-center text-sm text-red-600';
+            } finally {
+                hideLoading();
+            }
+        }
+        
+        async function handleSakitIjin(tipe) {
+            if (!selectedUser) {
+                absensiMessage.textContent = 'Pilih nama Anda terlebih dahulu.';
+                absensiMessage.className = 'mt-4 text-center text-sm text-red-600';
+                return;
+            }
+            showLoading('Mengirim data...');
+            const result = await submitAbsen(tipe);
+            absensiMessage.textContent = result.message;
+            absensiMessage.className = `mt-4 text-center text-sm ${result.success ? 'text-green-600' : 'text-red-600'}`;
+            hideLoading();
+        }
+
+        async function submitAbsen(tipe, imageData = null, lat = null, lon = null) {
+             try {
+                const formData = new URLSearchParams();
+                formData.append('action', 'submitAbsen');
+                formData.append('username', selectedUser);
+                formData.append('tipe', tipe);
+                if (imageData) formData.append('imageData', imageData);
+                if (lat) formData.append('lat', lat);
+                if (lon) formData.append('lon', lon);
+
+                const response = await fetch(SCRIPT_URL, { method: 'POST', body: formData });
+                return await response.json();
+             } catch (error) {
+                 return { success: false, message: 'Terjadi kesalahan jaringan saat mengirim data.' };
+             }
+        }
+
+        function showManagerDashboard() {
+            mainPage.classList.add('hidden');
+            managerPage.classList.remove('hidden');
+            reportDateInput.valueAsDate = new Date();
+        }
+
+        function showMainPage() {
+            managerPage.classList.add('hidden');
+            mainPage.classList.remove('hidden');
+        }
+
+        async function fetchManagerData() {
+            const selectedDate = reportDateInput.value;
+            if (!selectedDate) {
+                alert('Silakan pilih tanggal terlebih dahulu.');
+                return;
+            }
+            showLoading('Memuat laporan...');
+            try {
+                const response = await fetch(`${SCRIPT_URL}?action=getManagerReport&date=${selectedDate}`);
+                const result = await response.json();
+                if(result.success) {
+                    googleSheetLink.href = result.sheetUrl;
+                    renderReport(result.data);
+                } else {
+                     reportResults.innerHTML = `<p class="text-red-600">Gagal memuat laporan: ${result.message}</p>`;
+                }
+            } catch (error) {
+                reportResults.innerHTML = `<p class="text-red-600">Terjadi kesalahan jaringan.</p>`;
+            } finally {
+                hideLoading();
+            }
+        }
+
+        function renderReport(data) {
+            reportResults.innerHTML = ''; 
+            
+            if (!data || (data.telat.length === 0 && data.tidakMasuk.length === 0)) {
+                 reportResults.innerHTML = `<p class="text-gray-500">Tidak ada data karyawan telat atau tidak masuk untuk tanggal ini.</p>`;
+                 return;
+            }
+
+            if (data.telat.length > 0) {
+                let html = `<div class="p-4 bg-red-50 rounded-lg"><h4 class="font-bold text-red-800 mb-2">Karyawan Telat</h4><ul class="divide-y divide-red-200">`;
+                data.telat.forEach(item => {
+                    html += `<li class="py-2"><p class="font-semibold">${item.username}</p><p class="text-sm text-red-700">Masuk: ${item.jamMasuk} (${item.keterangan})</p></li>`;
+                });
+                html += `</ul></div>`;
+                reportResults.innerHTML += html;
+            }
+
+            if (data.tidakMasuk.length > 0) {
+                 let html = `<div class="p-4 bg-yellow-50 rounded-lg"><h4 class="font-bold text-yellow-800 mb-2">Karyawan Tidak Masuk</h4><ul class="divide-y divide-yellow-200">`;
+                data.tidakMasuk.forEach(item => {
+                    html += `<li class="py-2"><p class="font-semibold">${item.username}</p><p class="text-sm text-yellow-700">Seharusnya masuk jam ${item.jadwal}</p></li>`;
+                });
+                html += `</ul></div>`;
+                reportResults.innerHTML += html;
+            }
+        }
+        
+        function getDistanceFromLatLonInM(lat1, lon1, lat2, lon2) {
+            const R = 6371e3;
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
+            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        }
+
+        // --- EVENT LISTENERS ---
+        employeeSelect.addEventListener('change', onEmployeeSelect);
+        
+        absenMasukBtn.addEventListener('click', () => startCamera('masuk'));
+        absenPulangBtn.addEventListener('click', () => startCamera('pulang'));
+        absenSakitBtn.addEventListener('click', () => handleSakitIjin('sakit'));
+        absenIjinBtn.addEventListener('click', () => handleSakitIjin('ijin'));
+        
+        captureBtn.addEventListener('click', capturePhoto);
+        cancelCaptureBtn.addEventListener('click', stopCamera);
+
+        managerAccessBtn.addEventListener('click', showManagerDashboard);
+        backToMainBtn.addEventListener('click', showMainPage);
+        showReportBtn.addEventListener('click', fetchManagerData);
+        refreshGpsBtn.addEventListener('click', checkInitialGPS);
+        
+        // --- INITIALIZATION ---
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchEmployees();
+            checkInitialGPS();
+        });
+    </script>
+
+</body>
+</html>
+
