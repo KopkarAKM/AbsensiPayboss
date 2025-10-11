@@ -172,7 +172,7 @@
         const cancelCaptureBtn = document.getElementById('cancel-capture-btn');
         
         // --- KONFIGURASI ---
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzNf39jSt1ZEXJZmuxEojMpBGyyBONtOU7OyFEuwwxPS_YbO3k_XMWRnDFojbDEadD6BQ/exec";
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwvi18oNJR1-c15O0Wd30F-eyV1XGsBhG5lHpYH-YkylGtwNPeURfFDSSQT3IGHPZwPXA/exec";
         const CAFE_LAT = -8.679199;
         const CAFE_LON = 115.223842;
         const MAX_DISTANCE_METERS = 50;
@@ -291,7 +291,7 @@
         function checkInitialGPS() {
             gpsStatus.textContent = "Mencari lokasi...";
             gpsStatus.className = 'font-bold text-blue-800';
-            distanceInfo.textContent = "";
+            distanceInfo.textContent = "Pastikan Anda berada di area terbuka untuk sinyal terbaik.";
             refreshGpsBtn.classList.add('hidden');
 
             if (!navigator.geolocation) {
@@ -300,27 +300,11 @@
                 return;
             }
 
-            let watchId;
-            let timeoutId = setTimeout(() => {
-                handleGpsError("Waktu permintaan lokasi habis. Periksa sinyal & izin.");
-            }, 25000);
-
-            const handleGpsError = (message) => {
-                navigator.geolocation.clearWatch(watchId);
-                clearTimeout(timeoutId);
-                gpsStatus.textContent = "Gagal";
-                gpsStatus.className = 'font-bold text-red-700';
-                distanceInfo.textContent = message;
-                refreshGpsBtn.classList.remove('hidden');
-            };
-
-            watchId = navigator.geolocation.watchPosition(
+            navigator.geolocation.getCurrentPosition(
                 (position) => {
-                    navigator.geolocation.clearWatch(watchId);
-                    clearTimeout(timeoutId);
-
                     const lat = position.coords.latitude;
                     const lon = position.coords.longitude;
+                    const accuracy = position.coords.accuracy;
                     const distance = getDistanceFromLatLonInM(lat, lon, CAFE_LAT, CAFE_LON);
                     
                     if (distance <= MAX_DISTANCE_METERS) {
@@ -330,16 +314,27 @@
                         gpsStatus.textContent = "Di Luar Jangkauan";
                         gpsStatus.className = 'font-bold text-red-700';
                     }
-                    distanceInfo.textContent = `Jarak dari lokasi: ${distance.toFixed(0)} meter.`;
+                    distanceInfo.textContent = `Jarak: ${distance.toFixed(0)} meter (Akurasi: ${accuracy.toFixed(0)} meter).`;
                 },
                 (error) => {
                     let message = "Gagal mendapatkan lokasi. Pastikan izin lokasi aktif.";
-                    if (error.code === error.PERMISSION_DENIED) {
-                        message = "Anda menolak izin lokasi. Aktifkan di pengaturan browser.";
+                    switch(error.code) {
+                        case error.PERMISSION_DENIED:
+                            message = "Anda menolak izin lokasi. Aktifkan di pengaturan browser.";
+                            break;
+                        case error.POSITION_UNAVAILABLE:
+                            message = "Informasi lokasi tidak tersedia saat ini.";
+                            break;
+                        case error.TIMEOUT:
+                            message = "Waktu permintaan lokasi habis. Coba lagi.";
+                            break;
                     }
-                    handleGpsError(message);
+                    gpsStatus.textContent = "Gagal";
+                    gpsStatus.className = 'font-bold text-red-700';
+                    distanceInfo.textContent = message;
+                    refreshGpsBtn.classList.remove('hidden');
                 },
-                { enableHighAccuracy: true, maximumAge: 0 }
+                { enableHighAccuracy: true, timeout: 25000, maximumAge: 0 }
             );
         }
         
