@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Absensi Payboss Cafe — FIX</title>
+  <title>Absensi Payboss Cafe — FINAL</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
@@ -17,9 +17,9 @@
 <body class="bg-gray-100">
   <div class="max-w-md mx-auto p-4">
     <h1 class="text-2xl font-bold text-center">Absensi Payboss Cafe</h1>
-    <p class="text-center text-[11px] text-gray-500 mb-4">Gunakan HTTPS dan izinkan <b>Precise Location</b>.</p>
+    <p class="text-center text-[11px] text-gray-500 mb-4">Akses via <b>HTTPS</b> dan izinkan <b>Precise Location</b>.</p>
 
-    <!-- Server status / diagnostics -->
+    <!-- Server status -->
     <div class="p-3 rounded border bg-white mb-3">
       <div class="flex items-center justify-between">
         <div>
@@ -37,6 +37,21 @@
       <select id="employee" class="w-full border rounded p-2 mt-1">
         <option value="">Memuat...</option>
       </select>
+    </div>
+
+    <!-- Roster -->
+    <div class="p-3 rounded bg-gray-50 mb-4">
+      <p class="text-sm font-semibold text-gray-700 mb-2">Jadwal Shift Hari Ini</p>
+      <div class="flex gap-2">
+        <select id="shift" class="flex-1 border rounded p-2 text-sm">
+          <option value="">-- Pilih Shift --</option>
+          <option value="08:00">Pagi (08:00 - 16:00)</option>
+          <option value="16:00">Sore (16:00 - 24:00)</option>
+          <option value="00:00">Malam (00:00 - 08:00)</option>
+        </select>
+        <button id="save-shift" class="px-3 py-2 rounded bg-slate-700 text-white text-sm">Simpan</button>
+      </div>
+      <p id="shift-info" class="text-xs text-gray-600 mt-2"></p>
     </div>
 
     <!-- GPS -->
@@ -62,7 +77,7 @@
 
     <p id="msg" class="text-center text-sm mt-4"></p>
 
-    <!-- Advanced diagnostics (expandable) -->
+    <!-- Diagnostics -->
     <details class="mt-4">
       <summary class="text-xs text-gray-600 cursor-pointer">Lihat log diagnosa</summary>
       <pre id="log" class="log text-[11px] p-2 bg-white border rounded mt-2"></pre>
@@ -79,10 +94,10 @@
 
   <script>
     // ===== KONFIGURASI =====
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzps8knJrgpD_kl25oo_R7abFV1QC8S4OJ_NF4hFw9_cLIlHkcvAAPiaYT4PigF7p9XGA/exec";
-    // TODO: UBAH KE KOORDINAT KAFE SEBENARNYA
-    const CAFE_LAT = -8.679199; // Bali (contoh)
-    const CAFE_LON = 115.223842;
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyLMHiNICkfdt2q8S8AMAIY_Ji0JA_5XxpCpnV1oq51b-A_O1HwMzwbzAAhbCO9FjrQCw/exec";
+    // 📍 Samakan dengan Google Script (lihat proyek Apps Script FINAL)
+    const CAFE_LAT = -2.160345;
+    const CAFE_LON = 115.432198;
     const RADIUS_M = 50;
 
     // ===== Elements =====
@@ -91,6 +106,10 @@
     const elRetryServer = document.getElementById('retry-server');
 
     const elEmployee = document.getElementById('employee');
+    const elShift = document.getElementById('shift');
+    const elSaveShift = document.getElementById('save-shift');
+    const elShiftInfo = document.getElementById('shift-info');
+
     const elMsg = document.getElementById('msg');
 
     const elGpsStatus = document.getElementById('gps-status');
@@ -109,8 +128,8 @@
       return R*2*Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
     };
 
-    // ===== Server check + load employees =====
-    async function checkServerAndLoadEmployees(){
+    // ===== Server check + load employees & roster =====
+    async function checkServerAndLoad(){
       elServer.textContent = 'Menyambungkan...'; elServer.className = 'text-sm font-semibold text-gray-800';
       try{
         const controller = new AbortController();
@@ -120,27 +139,48 @@
         log('GET /getEmployees status:', res.status);
         if(!res.ok) throw new Error('HTTP '+res.status);
         const json = await res.json();
-        log('Response:', json);
         if(json.success){
-          elServer.textContent = 'Terhubung'; elServer.className = 'text-sm font-semibold text-green-700';
-          elServerDetail.textContent = '';
+          elServer.textContent = 'Terhubung'; elServer.className = 'text-sm font-semibold text-green-700'; elServerDetail.textContent = '';
           elEmployee.innerHTML = '<option value="">-- Pilih Karyawan --</option>';
           json.data.forEach(n=>{ const o=document.createElement('option'); o.value=n; o.textContent=n; elEmployee.appendChild(o); });
-        } else {
-          throw new Error(json.message || 'Respon tidak valid');
-        }
+        } else throw new Error(json.message||'Respon tidak valid');
       }catch(err){
         elServer.textContent = 'Gagal tersambung'; elServer.className = 'text-sm font-semibold text-red-700';
-        elServerDetail.textContent = 'Detail: '+err.message+' — Pastikan Web App sudah Deploy (Anyone with the link) dan URL benar.';
+        elServerDetail.textContent = 'Detail: '+err.message+' — Pastikan Web App sudah Deploy (Anyone with the link) & URL benar.';
         elEmployee.innerHTML = '<option value="">Gagal koneksi ke server</option>';
         log('Server error:', err);
       }
     }
 
-    elRetryServer.addEventListener('click', checkServerAndLoadEmployees);
+    elRetryServer.addEventListener('click', checkServerAndLoad);
+
+    // Load roster saat pilih karyawan
+    elEmployee.addEventListener('change', async (e)=>{
+      elShiftInfo.textContent = '';
+      elShift.value = '';
+      const user = e.target.value; if(!user) return;
+      try{
+        const r = await fetch(`${SCRIPT_URL}?action=getRoster&username=${encodeURIComponent(user)}`);
+        const j = await r.json();
+        if(j.success && j.jadwal){ elShift.value = j.jadwal; elShiftInfo.textContent = `Shift hari ini: ${j.jadwal}`; elShiftInfo.className = 'text-xs text-green-700 mt-2'; }
+        else { elShiftInfo.textContent = 'Belum pilih shift hari ini.'; elShiftInfo.className = 'text-xs text-amber-700 mt-2'; }
+      }catch(err){ elShiftInfo.textContent = 'Gagal memuat shift.'; elShiftInfo.className = 'text-xs text-red-700 mt-2'; }
+    });
+
+    elSaveShift.addEventListener('click', async ()=>{
+      const user = elEmployee.value; const s = elShift.value;
+      if(!user || !s){ elShiftInfo.textContent = 'Pilih nama & shift dulu.'; elShiftInfo.className = 'text-xs text-red-700 mt-2'; return; }
+      try{
+        const fd = new URLSearchParams(); fd.append('action','setRoster'); fd.append('username',user); fd.append('shift',s);
+        const r = await fetch(SCRIPT_URL, { method:'POST', body: fd });
+        const j = await r.json();
+        if(j.success){ elShiftInfo.textContent = `Shift disimpan: ${s}`; elShiftInfo.className = 'text-xs text-green-700 mt-2'; }
+        else { elShiftInfo.textContent = j.message || 'Gagal menyimpan shift.'; elShiftInfo.className = 'text-xs text-red-700 mt-2'; }
+      }catch(err){ elShiftInfo.textContent = 'Error jaringan saat menyimpan.'; elShiftInfo.className = 'text-xs text-red-700 mt-2'; }
+    });
 
     // ===== GPS =====
-    let lastPos = null; let mapObj = null; let mapInited = false;
+    let lastPos = null; let mapObj = null;
 
     async function getBestPosition(){
       return new Promise((resolve, reject)=>{
@@ -159,7 +199,7 @@
 
     async function updateGPS(){
       elGpsStatus.textContent = 'Mencari lokasi...'; elGpsStatus.className = 'text-sm font-semibold text-blue-700';
-      elGpsAcc.classList.add('hidden'); elGpsInfo.textContent = 'Jika diminta izin, pilih Allow dan aktifkan Precise.';
+      elGpsAcc.classList.add('hidden'); elGpsInfo.textContent = 'Jika diminta izin, pilih Allow & aktifkan Precise.';
       try{
         const pos = await getBestPosition();
         lastPos = pos;
@@ -185,9 +225,7 @@
       modal.classList.remove('hidden');
       setTimeout(()=>{
         const {latitude, longitude}=lastPos.coords;
-        // inisialisasi ulang kontainer peta agar tidak dobel
-        const mapDiv = document.getElementById('map');
-        mapDiv.innerHTML = '';
+        const mapDiv = document.getElementById('map'); mapDiv.innerHTML = '';
         mapObj = L.map('map').setView([latitude, longitude], 15);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(mapObj);
         L.marker([CAFE_LAT, CAFE_LON]).addTo(mapObj).bindPopup('Payboss Cafe');
@@ -204,13 +242,10 @@
       elMsg.textContent = 'Mengirim...'; elMsg.className = 'text-center text-gray-700 text-sm';
       try{
         const fd = new URLSearchParams();
-        fd.append('action','submitAbsen');
-        fd.append('username', user);
-        fd.append('tipe', type);
+        fd.append('action','submitAbsen'); fd.append('username', user); fd.append('tipe', type);
         if(lastPos){ fd.append('lat', lastPos.coords.latitude); fd.append('lon', lastPos.coords.longitude); }
         const controller = new AbortController(); const t=setTimeout(()=>controller.abort(), 12000);
-        const res = await fetch(SCRIPT_URL, { method:'POST', body: fd, signal: controller.signal });
-        clearTimeout(t);
+        const res = await fetch(SCRIPT_URL, { method:'POST', body: fd, signal: controller.signal }); clearTimeout(t);
         if(!res.ok) throw new Error('HTTP '+res.status);
         const json = await res.json();
         elMsg.textContent = json.message || (json.success?'Berhasil':'Gagal');
@@ -231,10 +266,9 @@
     // ===== Init =====
     document.addEventListener('DOMContentLoaded', ()=>{
       if(location.protocol!=='https:' && location.hostname!=='localhost'){
-        elServerDetail.textContent = 'Peringatan: Situs tidak melalui HTTPS. Beberapa device menolak GPS presisi.';
+        document.getElementById('server-detail').textContent = 'Peringatan: Situs tidak melalui HTTPS. Beberapa device menolak GPS presisi.';
       }
-      checkServerAndLoadEmployees();
-      // Geolocation pada iOS/Android kadang butuh gesture; tombol Kalibrasi tersedia.
+      checkServerAndLoad();
       updateGPS();
     });
   </script>
