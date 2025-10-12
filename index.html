@@ -232,7 +232,7 @@
     </div>
 
     <script>
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxJu5i8jgFCS8vvYLhgEMsfJKDLH6q30-IOaw34Jcbhq629C9EO2pKWA7dbE6GoEIIg/exec";
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycby91farnL33RyB30SSa-dzV_Mqn_Ekf2OSYf5zrLLEa6YcUbm-laYPqDaaLP2exyTXoeg/exec";
         
         // --- DATA AWAL (statis) ---
         const ADMIN_PIN = '0000';
@@ -263,7 +263,6 @@
 
         // --- FUNGSI UTAMA (Komunikasi dengan Google Sheets) ---
         
-        // FIX: Mengganti fetch dengan XMLHttpRequest untuk mengatasi masalah CORS
         function fetchGoogleScript(url, options = {}) {
             return new Promise((resolve, reject) => {
                 const method = options.method || 'GET';
@@ -273,7 +272,7 @@
                 xhr.open(method, finalUrl, true);
 
                 xhr.onload = function() {
-                    if (xhr.status >= 200 && xhr.status < 400) { // Google Script redirect bisa menghasilkan status 302
+                    if (xhr.status >= 200 && xhr.status < 400) {
                         if (!xhr.responseText) {
                             return reject(new Error("Received empty response from server. Check script deployment and permissions."));
                         }
@@ -315,19 +314,40 @@
                     leaveRequests = (result.data.leaveRequests || []).map(r => ({ ...r, ID_Izin: parseInt(r.ID_Izin), ID_Karyawan: parseInt(r.ID_Karyawan) }));
                     schedules = (result.data.schedules || []).map(r => ({ ...r, ID_Jadwal: parseInt(r.ID_Jadwal), ID_Karyawan: parseInt(r.ID_Karyawan) }));
                     announcements = (result.data.announcements || []).map(r => ({ ...r, ID_Pengumuman: parseInt(r.ID_Pengumuman) }));
+                    
+                    loadingOverlay.classList.add('hidden');
+                    loginView.classList.remove('hidden');
                     showToast("Data berhasil dimuat dari Google Sheets.");
                 } else {
                     throw new Error(result.message || "Unknown error from script.");
                 }
             } catch (error) {
-                const errorMessage = "Gagal memuat data! PASTIKAN script di-deploy dengan akses 'Anyone'.";
-                showToast(errorMessage, true); // true menandakan eror
                 console.error("Error loading data:", error);
-            } finally {
+                const errorHtml = `
+                    <div class="bg-white rounded-2xl shadow-lg p-6 md:p-8 max-w-lg mx-auto">
+                        <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-md" role="alert">
+                            <p class="font-bold">Gagal Terhubung ke Google Sheets</p>
+                            <p class="mt-2">Aplikasi tidak dapat mengambil data. Masalah ini hampir selalu disebabkan oleh pengaturan izin pada Google Script Anda.</p>
+                            <p class="mt-3 font-semibold">Mohon periksa kembali langkah-langkah berikut:</p>
+                            <ol class="list-decimal list-inside mt-2 space-y-1 text-sm">
+                                <li>Buka editor Google Apps Script Anda.</li>
+                                <li>Klik tombol biru <strong>"Deploy"</strong>, lalu pilih <strong>"Manage deployments"</strong>.</li>
+                                <li>Pada deployment yang aktif, klik ikon pensil (Edit).</li>
+                                <li>Di bagian "Web app", cari "Who has access" dan pastikan Anda memilih opsi <strong>"Anyone"</strong>.</li>
+                                <li>Klik <strong>"Deploy"</strong> untuk menyimpan dan menerapkan perubahan.</li>
+                            </ol>
+                            <p class="mt-3">Setelah langkah-langkah di atas selesai, silakan <strong>muat ulang (refresh) halaman aplikasi ini</strong>.</p>
+                        </div>
+                    </div>
+                `;
                 loadingOverlay.classList.add('hidden');
-                loginView.classList.remove('hidden');
+                const mainContainer = document.querySelector('.w-full.max-w-5xl');
+                if (mainContainer) {
+                    mainContainer.innerHTML = errorHtml;
+                }
             }
         }
+
 
         async function syncDataToSheet() {
             showToast("Menyimpan data...");
