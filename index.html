@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Absensi Karyawan - Payboss Cafe</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body {
@@ -111,16 +112,31 @@
             </div>
             <a id="googleSheetLink" href="#" target="_blank" class="block w-full text-center mb-6 py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-gray-600 hover:bg-gray-700">Buka Google Sheet</a>
             
-            <div class="bg-gray-50 p-4 rounded-lg">
-                <h3 class="text-lg font-semibold mb-2">Laporan Harian</h3>
-                <div class="mb-4">
-                    <label for="report-date" class="block text-sm font-medium text-gray-700">Pilih Tanggal</label>
-                    <input type="date" id="report-date" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+            <div class="space-y-8">
+                <!-- Daily Report -->
+                <div class="bg-gray-50 p-4 rounded-lg">
+                    <h3 class="text-lg font-semibold mb-2">Laporan Harian</h3>
+                    <div class="mb-4">
+                        <label for="report-date" class="block text-sm font-medium text-gray-700">Pilih Tanggal</label>
+                        <input type="date" id="report-date" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                    </div>
+                     <button id="show-report-btn" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700">Tampilkan Laporan Harian</button>
+                    <div id="report-results" class="mt-6 space-y-4"></div>
                 </div>
-                 <button id="show-report-btn" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700">Tampilkan</button>
-            </div>
 
-            <div id="report-results" class="mt-6 space-y-6"></div>
+                <!-- Monthly Chart -->
+                 <div class="bg-gray-50 p-4 rounded-lg">
+                    <h3 class="text-lg font-semibold mb-2">Grafik Pelanggaran Bulanan</h3>
+                    <div class="mb-4">
+                        <label for="chart-month" class="block text-sm font-medium text-gray-700">Pilih Bulan & Tahun</label>
+                        <input type="month" id="chart-month" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                    </div>
+                     <button id="show-chart-btn" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700">Tampilkan Grafik</button>
+                    <div id="chart-container" class="mt-4">
+                        <canvas id="monthlyChart"></canvas>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- Camera Modal -->
@@ -177,6 +193,10 @@
         const reportDateInput = document.getElementById('report-date');
         const showReportBtn = document.getElementById('show-report-btn');
         const reportResults = document.getElementById('report-results');
+
+        const chartMonthInput = document.getElementById('chart-month');
+        const showChartBtn = document.getElementById('show-chart-btn');
+        const monthlyChartCanvas = document.getElementById('monthlyChart');
         
         const cameraModal = document.getElementById('camera-modal');
         const videoFeed = document.getElementById('video-feed');
@@ -189,7 +209,7 @@
         const closeMapBtn = document.getElementById('close-map-btn');
         
         // --- KONFIGURASI ---
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz9kupCbmlJt261kEmyRk1kNqQAwpF1ZKpnPnK58p7RXH71TV23l9X7PJK2go93iDVYQA/exec";
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx02LMszd17RGJk26XZFy5RkuSe6sB_0_3dM_0bJN6RNEjmIt0hvy-TsjmPAI1e2RFEwA/exec";
         const CAFE_LAT = -2.160283;
         const CAFE_LON = 115.406322;
         const MAX_DISTANCE_METERS = 50;
@@ -198,6 +218,7 @@
         let stream = null;
         let absenTipe = '';
         let lastKnownPosition = null;
+        let monthlyChart = null;
 
         // --- FUNCTIONS ---
         
@@ -210,23 +231,42 @@
             loading.classList.add('hidden');
         }
 
-        async function fetchEmployees() {
-            showLoading('Memuat daftar karyawan...');
+       async function fetchAPI(action, params = {}) {
             try {
-                const response = await fetch(`${SCRIPT_URL}?action=getEmployees`);
-                const result = await response.json();
-                if (result.success && result.data.length > 0) {
-                    populateEmployeeDropdown(result.data);
-                } else {
-                    employeeSelect.innerHTML = `<option value="">Gagal memuat karyawan. Cek Google Script.</option>`;
+                const formData = new URLSearchParams();
+                formData.append('action', action);
+                for (const key in params) {
+                    formData.append(key, params[key]);
                 }
+                const response = await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return await response.json();
             } catch (error) {
-                console.error("Fetch employees error:", error);
-                employeeSelect.innerHTML = `<option value="">Error jaringan. Periksa koneksi Anda.</option>`;
-            } finally {
-                hideLoading();
+                console.error(`Fetch API error for action "${action}":`, error);
+                alert(`Terjadi error jaringan saat menjalankan '${action}'. Cek konsol (F12) untuk detail.`);
+                return { success: false, message: `Error jaringan: ${error.message}` };
             }
         }
+
+
+        async function fetchEmployees() {
+            showLoading('Memuat daftar karyawan...');
+            const result = await fetchAPI('getEmployees');
+            if (result.success && result.data.length > 0) {
+                populateEmployeeDropdown(result.data);
+            } else {
+                employeeSelect.innerHTML = `<option value="">Gagal memuat karyawan. Cek Google Script.</option>`;
+                alert(result.message || 'Gagal memuat daftar karyawan. Pastikan script sudah di-deploy ulang dengan benar.');
+            }
+            hideLoading();
+        }
+
 
         function populateEmployeeDropdown(employees) {
             employeeSelect.innerHTML = '<option value="">-- Pilih Nama Anda --</option>';
@@ -256,20 +296,14 @@
 
         async function fetchRosterInfo(username) {
             rosterMessage.textContent = 'Memeriksa jadwal...';
-            try {
-                const response = await fetch(`${SCRIPT_URL}?action=getRoster&username=${username}`);
-                const result = await response.json();
-                if (result.success && result.jadwal) {
-                    shiftSelect.value = result.jadwal;
-                    rosterMessage.textContent = `Jadwal Anda hari ini: Shift ${result.jadwal}`;
-                    rosterMessage.className = 'text-xs text-center mt-2 text-green-600';
-                } else {
-                    rosterMessage.textContent = `Anda belum memilih shift untuk hari ini.`;
-                     rosterMessage.className = 'text-xs text-center mt-2 text-yellow-600';
-                }
-            } catch (error) {
-                rosterMessage.textContent = 'Gagal memuat jadwal.';
-                rosterMessage.className = 'text-xs text-center mt-2 text-red-600';
+            const result = await fetchAPI('getRoster', { username });
+            if (result.success && result.jadwal) {
+                shiftSelect.value = result.jadwal;
+                rosterMessage.textContent = `Jadwal Anda hari ini: Shift ${result.jadwal}`;
+                rosterMessage.className = 'text-xs text-center mt-2 text-green-600';
+            } else {
+                rosterMessage.textContent = `Anda belum memilih shift untuk hari ini.`;
+                 rosterMessage.className = 'text-xs text-center mt-2 text-yellow-600';
             }
         }
         
@@ -282,28 +316,16 @@
             }
             
             showLoading('Menyimpan jadwal...');
-            try {
-                const formData = new URLSearchParams();
-                formData.append('action', 'setRoster');
-                formData.append('username', selectedUser);
-                formData.append('shift', selectedShift);
-                
-                const response = await fetch(SCRIPT_URL, { method: 'POST', body: formData });
-                const result = await response.json();
-                
-                if(result.success) {
-                    rosterMessage.textContent = `Jadwal berhasil disimpan: Shift ${selectedShift}`;
-                    rosterMessage.className = 'text-xs text-center mt-2 text-green-600';
-                } else {
-                    rosterMessage.textContent = result.message || 'Gagal menyimpan jadwal.';
-                    rosterMessage.className = 'text-xs text-center mt-2 text-red-600';
-                }
-            } catch(error) {
-                 rosterMessage.textContent = 'Error jaringan saat menyimpan.';
-                 rosterMessage.className = 'text-xs text-center mt-2 text-red-600';
-            } finally {
-                hideLoading();
+            const result = await fetchAPI('setRoster', { username: selectedUser, shift: selectedShift });
+
+            if(result.success) {
+                rosterMessage.textContent = `Jadwal berhasil disimpan: Shift ${selectedShift}`;
+                rosterMessage.className = 'text-xs text-center mt-2 text-green-600';
+            } else {
+                rosterMessage.textContent = result.message || 'Gagal menyimpan jadwal.';
+                rosterMessage.className = 'text-xs text-center mt-2 text-red-600';
             }
+            hideLoading();
         }
 
         function checkInitialGPS() {
@@ -373,7 +395,6 @@
             iframe.allowFullscreen = true;
             iframe.loading = "lazy";
             iframe.referrerPolicy="no-referrer-when-downgrade";
-            // URL ini akan menampilkan peta dengan pin di lokasi kafe (q) dan mencoba menampilkan lokasi pengguna (ll)
             iframe.src = `https://maps.google.com/maps?q=${CAFE_LAT},${CAFE_LON}&ll=${userLat},${userLon}&z=17&output=embed`;
 
             mapContainer.innerHTML = ''; // Clear previous map
@@ -449,26 +470,21 @@
         }
 
         async function submitAbsen(tipe, imageData = null, lat = null, lon = null) {
-             try {
-                const formData = new URLSearchParams();
-                formData.append('action', 'submitAbsen');
-                formData.append('username', selectedUser);
-                formData.append('tipe', tipe);
-                if (imageData) formData.append('imageData', imageData);
-                if (lat) formData.append('lat', lat);
-                if (lon) formData.append('lon', lon);
-
-                const response = await fetch(SCRIPT_URL, { method: 'POST', body: formData });
-                return await response.json();
-             } catch (error) {
-                 return { success: false, message: 'Terjadi kesalahan jaringan saat mengirim data.' };
-             }
+             return await fetchAPI('submitAbsen', {
+                 username: selectedUser,
+                 tipe,
+                 imageData,
+                 lat,
+                 lon
+             });
         }
 
         function showManagerDashboard() {
             mainPage.classList.add('hidden');
             managerPage.classList.remove('hidden');
-            reportDateInput.valueAsDate = new Date();
+            const today = new Date();
+            reportDateInput.valueAsDate = today;
+            chartMonthInput.value = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
         }
 
         function showMainPage() {
@@ -482,28 +498,23 @@
                 alert('Silakan pilih tanggal terlebih dahulu.');
                 return;
             }
-            showLoading('Memuat laporan...');
-            try {
-                const response = await fetch(`${SCRIPT_URL}?action=getManagerReport&date=${selectedDate}`);
-                const result = await response.json();
-                if(result.success) {
-                    googleSheetLink.href = result.sheetUrl;
-                    renderReport(result.data);
-                } else {
-                     reportResults.innerHTML = `<p class="text-red-600">Gagal memuat laporan: ${result.message}</p>`;
-                }
-            } catch (error) {
-                reportResults.innerHTML = `<p class="text-red-600">Terjadi kesalahan jaringan.</p>`;
-            } finally {
-                hideLoading();
+            showLoading('Memuat laporan harian...');
+            const result = await fetchAPI('getManagerReport', { date: selectedDate });
+
+            if(result.success) {
+                googleSheetLink.href = result.sheetUrl;
+                renderReport(result.data);
+            } else {
+                 reportResults.innerHTML = `<p class="text-red-600">Gagal memuat laporan: ${result.message}</p>`;
             }
+            hideLoading();
         }
 
         function renderReport(data) {
             reportResults.innerHTML = ''; 
             
-            if (!data || (data.telat.length === 0 && data.tidakMasuk.length === 0)) {
-                 reportResults.innerHTML = `<p class="text-gray-500">Tidak ada data karyawan telat atau tidak masuk untuk tanggal ini.</p>`;
+            if (!data || (data.telat.length === 0 && data.cepatPulang.length === 0 && data.luarLokasi.length === 0)) {
+                 reportResults.innerHTML = `<p class="text-gray-500">Tidak ada data pelanggaran untuk tanggal ini.</p>`;
                  return;
             }
 
@@ -515,15 +526,94 @@
                 html += `</ul></div>`;
                 reportResults.innerHTML += html;
             }
-
-            if (data.tidakMasuk.length > 0) {
-                 let html = `<div class="p-4 bg-yellow-50 rounded-lg"><h4 class="font-bold text-yellow-800 mb-2">Karyawan Tidak Masuk</h4><ul class="divide-y divide-yellow-200">`;
-                data.tidakMasuk.forEach(item => {
-                    html += `<li class="py-2"><p class="font-semibold">${item.username}</p><p class="text-sm text-yellow-700">Seharusnya masuk jam ${item.jadwal}</p></li>`;
+            
+            if (data.cepatPulang.length > 0) {
+                let html = `<div class="p-4 bg-orange-50 rounded-lg"><h4 class="font-bold text-orange-800 mb-2">Karyawan Pulang Cepat</h4><ul class="divide-y divide-orange-200">`;
+                data.cepatPulang.forEach(item => {
+                    html += `<li class="py-2"><p class="font-semibold">${item.username}</p><p class="text-sm text-orange-700">Pulang: ${item.jamPulang} (${item.keterangan})</p></li>`;
                 });
                 html += `</ul></div>`;
                 reportResults.innerHTML += html;
             }
+            
+            if (data.luarLokasi.length > 0) {
+                let html = `<div class="p-4 bg-indigo-50 rounded-lg"><h4 class="font-bold text-indigo-800 mb-2">Absen di Luar Lokasi</h4><ul class="divide-y divide-indigo-200">`;
+                data.luarLokasi.forEach(item => {
+                    html += `<li class="py-2"><p class="font-semibold">${item.username}</p><p class="text-sm text-indigo-700">Absen ${item.tipe} pukul ${item.jam}</p></li>`;
+                });
+                html += `</ul></div>`;
+                reportResults.innerHTML += html;
+            }
+        }
+        
+        async function fetchMonthlyChartData() {
+            const month = chartMonthInput.value;
+            if (!month) {
+                alert('Pilih bulan dan tahun terlebih dahulu.');
+                return;
+            }
+            showLoading('Memuat data grafik...');
+            const result = await fetchAPI('getMonthlyChartData', { month });
+
+            if(result.success) {
+                renderMonthlyChart(result.data);
+            } else {
+                alert('Gagal memuat data grafik: ' + result.message);
+            }
+            hideLoading();
+        }
+
+        function renderMonthlyChart(data) {
+            const labels = Object.keys(data);
+            const telatData = labels.map(label => data[label].telat);
+            const cepatPulangData = labels.map(label => data[label].cepatPulang);
+
+            if (monthlyChart) {
+                monthlyChart.destroy();
+            }
+
+            monthlyChart = new Chart(monthlyChartCanvas, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Total Telat',
+                            data: telatData,
+                            backgroundColor: 'rgba(239, 68, 68, 0.6)', // red
+                            borderColor: 'rgba(239, 68, 68, 1)',
+                            borderWidth: 1
+                        },
+                        {
+                            label: 'Total Pulang Cepat',
+                            data: cepatPulangData,
+                            backgroundColor: 'rgba(249, 115, 22, 0.6)', // orange
+                            borderColor: 'rgba(249, 115, 22, 1)',
+                            borderWidth: 1
+                        }
+                    ]
+                },
+                options: {
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 1
+                            }
+                        }
+                    },
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        },
+                        title: {
+                            display: true,
+                            text: `Laporan Pelanggaran Bulan ${chartMonthInput.value}`
+                        }
+                    }
+                }
+            });
         }
         
         function getDistanceFromLatLonInM(lat1, lon1, lat2, lon2) {
@@ -552,6 +642,7 @@
         managerAccessBtn.addEventListener('click', showManagerDashboard);
         backToMainBtn.addEventListener('click', showMainPage);
         showReportBtn.addEventListener('click', fetchManagerData);
+        showChartBtn.addEventListener('click', fetchMonthlyChartData);
         refreshGpsBtn.addEventListener('click', checkInitialGPS);
         
         // --- INITIALIZATION ---
