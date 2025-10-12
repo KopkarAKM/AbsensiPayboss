@@ -110,7 +110,6 @@
                 <h2 class="text-2xl font-bold">Dasbor Manajer</h2>
                 <button id="back-to-main-btn" class="text-sm text-indigo-600 hover:text-indigo-800 font-medium">Kembali</button>
             </div>
-            <a id="googleSheetLink" href="#" target="_blank" class="block w-full text-center mb-6 py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-gray-600 hover:bg-gray-700">Buka Google Sheet</a>
             
             <div class="space-y-8">
                 <!-- Daily Report -->
@@ -189,7 +188,6 @@
         const managerAccessBtn = document.getElementById('manager-access-btn');
         
         const backToMainBtn = document.getElementById('back-to-main-btn');
-        const googleSheetLink = document.getElementById('googleSheetLink');
         const reportDateInput = document.getElementById('report-date');
         const showReportBtn = document.getElementById('show-report-btn');
         const reportResults = document.getElementById('report-results');
@@ -209,7 +207,7 @@
         const closeMapBtn = document.getElementById('close-map-btn');
         
         // --- KONFIGURASI ---
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx02LMszd17RGJk26XZFy5RkuSe6sB_0_3dM_0bJN6RNEjmIt0hvy-TsjmPAI1e2RFEwA/exec";
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzifyOsCpj5uMjWUN8NqZ5dUwBQD-v09XWWOQ57Rj1x-xnhGbMdbtfrkUEF3LPeb889eA/exec";
         const CAFE_LAT = -2.160283;
         const CAFE_LON = 115.406322;
         const MAX_DISTANCE_METERS = 50;
@@ -502,7 +500,6 @@
             const result = await fetchAPI('getManagerReport', { date: selectedDate });
 
             if(result.success) {
-                googleSheetLink.href = result.sheetUrl;
                 renderReport(result.data);
             } else {
                  reportResults.innerHTML = `<p class="text-red-600">Gagal memuat laporan: ${result.message}</p>`;
@@ -513,12 +510,14 @@
         function renderReport(data) {
             reportResults.innerHTML = ''; 
             
-            if (!data || (data.telat.length === 0 && data.cepatPulang.length === 0 && data.luarLokasi.length === 0)) {
-                 reportResults.innerHTML = `<p class="text-gray-500">Tidak ada data pelanggaran untuk tanggal ini.</p>`;
+            const hasData = Object.keys(data).some(key => data[key].length > 0);
+
+            if (!data || !hasData) {
+                 reportResults.innerHTML = `<p class="text-gray-500">Tidak ada data untuk ditampilkan pada tanggal ini.</p>`;
                  return;
             }
 
-            if (data.telat.length > 0) {
+            if (data.telat && data.telat.length > 0) {
                 let html = `<div class="p-4 bg-red-50 rounded-lg"><h4 class="font-bold text-red-800 mb-2">Karyawan Telat</h4><ul class="divide-y divide-red-200">`;
                 data.telat.forEach(item => {
                     html += `<li class="py-2"><p class="font-semibold">${item.username}</p><p class="text-sm text-red-700">Masuk: ${item.jamMasuk} (${item.keterangan})</p></li>`;
@@ -527,7 +526,7 @@
                 reportResults.innerHTML += html;
             }
             
-            if (data.cepatPulang.length > 0) {
+            if (data.cepatPulang && data.cepatPulang.length > 0) {
                 let html = `<div class="p-4 bg-orange-50 rounded-lg"><h4 class="font-bold text-orange-800 mb-2">Karyawan Pulang Cepat</h4><ul class="divide-y divide-orange-200">`;
                 data.cepatPulang.forEach(item => {
                     html += `<li class="py-2"><p class="font-semibold">${item.username}</p><p class="text-sm text-orange-700">Pulang: ${item.jamPulang} (${item.keterangan})</p></li>`;
@@ -536,10 +535,19 @@
                 reportResults.innerHTML += html;
             }
             
-            if (data.luarLokasi.length > 0) {
+            if (data.luarLokasi && data.luarLokasi.length > 0) {
                 let html = `<div class="p-4 bg-indigo-50 rounded-lg"><h4 class="font-bold text-indigo-800 mb-2">Absen di Luar Lokasi</h4><ul class="divide-y divide-indigo-200">`;
                 data.luarLokasi.forEach(item => {
                     html += `<li class="py-2"><p class="font-semibold">${item.username}</p><p class="text-sm text-indigo-700">Absen ${item.tipe} pukul ${item.jam}</p></li>`;
+                });
+                html += `</ul></div>`;
+                reportResults.innerHTML += html;
+            }
+
+            if(data.sakitIjin && data.sakitIjin.length > 0) {
+                let html = `<div class="p-4 bg-yellow-50 rounded-lg"><h4 class="font-bold text-yellow-800 mb-2">Karyawan Sakit / Ijin</h4><ul class="divide-y divide-yellow-200">`;
+                data.sakitIjin.forEach(item => {
+                    html += `<li class="py-2"><p class="font-semibold">${item.username}</p><p class="text-sm text-yellow-700">Keterangan: ${item.tipe} pada jam ${item.jam}</p></li>`;
                 });
                 html += `</ul></div>`;
                 reportResults.innerHTML += html;
