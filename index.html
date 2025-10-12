@@ -12,6 +12,39 @@
         .nav-btn { @apply w-full text-left p-3 rounded-lg transition-colors duration-200; }
         .nav-btn.active { @apply bg-indigo-600 text-white; }
         .nav-btn:not(.active) { @apply text-gray-600 hover:bg-gray-200; }
+        
+        /* Gaya untuk Thumbnail Preview */
+        .thumbnail-container {
+            position: relative;
+            display: inline-block;
+        }
+
+        .thumbnail-preview {
+            visibility: hidden;
+            width: 160px; /* Lebar thumbnail */
+            background-color: #555;
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 5px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%; /* Posisi di atas elemen */
+            left: 50%;
+            margin-left: -80px; /* Setengah dari lebar untuk menengahkan */
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .thumbnail-preview img {
+            width: 100%;
+            border-radius: 4px;
+        }
+
+        .thumbnail-container:hover .thumbnail-preview {
+            visibility: visible;
+            opacity: 1;
+        }
     </style>
 </head>
 <body class="bg-gray-100 flex items-center justify-center min-h-screen">
@@ -52,7 +85,6 @@
 
         <!-- Tampilan Karyawan (Setelah Login) -->
         <div id="employeeView" class="hidden">
-            <!-- Strukturnya sama persis dengan versi sebelumnya -->
             <div class="bg-white rounded-2xl shadow-lg p-6 md:p-8">
                 <div class="flex justify-between items-center mb-6">
                     <div>
@@ -63,7 +95,6 @@
                 </div>
                 
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
-                    <!-- Navigasi Karyawan -->
                     <div class="md:col-span-1">
                         <nav class="flex flex-col space-y-2">
                             <button onclick="showEmployeeSection('home')" id="nav-employee-home" class="nav-btn active">Beranda</button>
@@ -73,9 +104,7 @@
                         </nav>
                     </div>
 
-                    <!-- Konten Karyawan -->
                     <div class="md:col-span-3">
-                        <!-- Beranda -->
                         <div id="employee-home">
                             <h2 class="text-xl font-semibold mb-4 text-gray-700">Absensi Hari Ini</h2>
                             <div class="bg-gray-50 p-6 rounded-lg text-center">
@@ -87,12 +116,10 @@
                                 <p id="todaySchedule" class="bg-gray-50 p-4 rounded-lg text-gray-800"></p>
                             </div>
                         </div>
-                        <!-- Jadwal Saya -->
                         <div id="employee-schedule" class="hidden">
                              <h2 class="text-xl font-semibold mb-4 text-gray-700">Jadwal Kerja Saya</h2>
                              <div id="employeeScheduleContent" class="space-y-3"></div>
                         </div>
-                        <!-- Ajukan Izin -->
                         <div id="employee-requests" class="hidden">
                             <h2 class="text-xl font-semibold mb-4 text-gray-700">Formulir Pengajuan Izin</h2>
                             <form id="leaveRequestForm" class="space-y-4">
@@ -117,7 +144,6 @@
                             <h3 class="text-lg font-semibold mt-6 mb-2 text-gray-700">Riwayat Pengajuan</h3>
                             <div id="employeeRequestsHistory" class="space-y-2"></div>
                         </div>
-                        <!-- Pengumuman -->
                         <div id="employee-announcements" class="hidden">
                             <h2 class="text-xl font-semibold mb-4 text-gray-700">Papan Pengumuman</h2>
                             <div id="announcementList" class="space-y-4"></div>
@@ -129,7 +155,6 @@
 
         <!-- Tampilan Admin -->
         <div id="adminView" class="hidden">
-           <!-- Strukturnya sama persis dengan versi sebelumnya -->
            <div class="bg-white rounded-2xl shadow-lg p-6 md:p-8">
                 <div class="flex justify-between items-center mb-6">
                     <h1 class="text-2xl font-bold text-gray-800">Dashboard Admin</h1>
@@ -137,7 +162,6 @@
                 </div>
 
                  <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
-                    <!-- Navigasi Admin -->
                     <div class="md:col-span-1">
                         <nav class="flex flex-col space-y-2">
                              <button onclick="showAdminSection('attendance')" id="nav-admin-attendance" class="nav-btn active">Laporan Absensi</button>
@@ -147,9 +171,7 @@
                         </nav>
                     </div>
 
-                    <!-- Konten Admin -->
                     <div class="md:col-span-3">
-                        <!-- Laporan Absensi -->
                         <div id="admin-attendance">
                             <div class="mb-4">
                                 <button onclick="exportToCSV()" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg">Ekspor ke CSV</button>
@@ -160,7 +182,9 @@
                                         <tr>
                                             <th class="py-3 px-4 text-left text-xs font-semibold text-gray-600 uppercase">Nama</th>
                                             <th class="py-3 px-4 text-left text-xs font-semibold text-gray-600 uppercase">Masuk</th>
+                                            <th class="py-3 px-4 text-left text-xs font-semibold text-gray-600 uppercase">Foto Masuk</th>
                                             <th class="py-3 px-4 text-left text-xs font-semibold text-gray-600 uppercase">Keluar</th>
+                                            <th class="py-3 px-4 text-left text-xs font-semibold text-gray-600 uppercase">Foto Keluar</th>
                                             <th class="py-3 px-4 text-left text-xs font-semibold text-gray-600 uppercase">Total Jam</th>
                                         </tr>
                                     </thead>
@@ -168,7 +192,6 @@
                                 </table>
                             </div>
                         </div>
-                        <!-- Manajemen Jadwal -->
                         <div id="admin-schedule" class="hidden">
                             <h2 class="text-xl font-semibold mb-4 text-gray-700">Buat Jadwal Shift</h2>
                             <form id="scheduleForm" class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end bg-gray-50 p-4 rounded-lg mb-6">
@@ -191,12 +214,10 @@
                              <h3 class="text-lg font-semibold mt-6 mb-2 text-gray-700">Jadwal Tersimpan</h3>
                              <div id="adminScheduleList" class="space-y-2"></div>
                         </div>
-                        <!-- Persetujuan Izin -->
                         <div id="admin-approvals" class="hidden">
                              <h2 class="text-xl font-semibold mb-4 text-gray-700">Pengajuan Izin Masuk</h2>
                              <div id="adminApprovalList" class="space-y-3"></div>
                         </div>
-                        <!-- Buat Pengumuman -->
                         <div id="admin-announcements" class="hidden">
                              <h2 class="text-xl font-semibold mb-4 text-gray-700">Formulir Pengumuman</h2>
                             <form id="announcementForm" class="space-y-4">
@@ -234,7 +255,6 @@
     <script>
         const SCRIPT_URL = "https://script.google.com/macros/s/AKfycby91farnL33RyB30SSa-dzV_Mqn_Ekf2OSYf5zrLLEa6YcUbm-laYPqDaaLP2exyTXoeg/exec";
         
-        // --- DATA AWAL (statis) ---
         const ADMIN_PIN = '0000';
         const employees = [
             { id: 1, pin: '1234', name: 'Andi' },
@@ -242,7 +262,6 @@
             { id: 3, pin: '1122', name: 'Citra' }
         ];
 
-        // --- STATE APLIKASI (diisi dari Google Sheet) ---
         let currentPin = '';
         let stream;
         let loggedInUser = null;
@@ -251,7 +270,6 @@
         let leaveRequests = [];
         let announcements = [];
         
-        // --- ELEMEN DOM ---
         const pinDisplay = document.getElementById('pinDisplay');
         const currentTimeEl = document.getElementById('currentTime');
         const loginView = document.getElementById('loginView');
@@ -261,12 +279,11 @@
         const toast = document.getElementById('toast');
         const toastMessage = document.getElementById('toastMessage');
 
-        // --- FUNGSI UTAMA (Komunikasi dengan Google Sheets) ---
         
         function fetchGoogleScript(url, options = {}) {
             return new Promise((resolve, reject) => {
                 const method = options.method || 'GET';
-                const finalUrl = url + (url.includes('?') ? '&' : '?') + 't=' + new Date().getTime(); // Cache busting
+                const finalUrl = url + (url.includes('?') ? '&' : '?') + 't=' + new Date().getTime(); 
 
                 const xhr = new XMLHttpRequest();
                 xhr.open(method, finalUrl, true);
@@ -375,7 +392,6 @@
             }
         }
 
-        // --- FUNGSI UTILITAS & Tampilan ---
         function showToast(message, isError = false) {
             toastMessage.textContent = message;
             toast.classList.remove('opacity-0');
@@ -390,7 +406,7 @@
             
             setTimeout(() => {
                 toast.classList.add('opacity-0');
-            }, isError ? 8000 : 3000); // Durasi lebih lama untuk pesan eror
+            }, isError ? 8000 : 3000); 
         }
 
         function getTodayDateString() { return new Date().toISOString().split('T')[0]; }
@@ -428,7 +444,6 @@
             loginView.classList.remove('hidden');
         }
 
-        // --- FUNGSI RENDER (PEMBUAT TAMPILAN) ---
         function renderEmployeeView() {
             document.getElementById('welcomeEmployee').textContent = `Selamat Datang, ${loggedInUser.name}`;
             showEmployeeSection('home');
@@ -498,15 +513,37 @@
         function renderAttendanceTable() {
             const tableBody = document.getElementById('attendanceTableBody');
             const todayRecords = attendanceRecords.filter(r => String(r.Waktu_Masuk).startsWith(getTodayDateString()));
-            if (todayRecords.length === 0) { tableBody.innerHTML = `<tr><td colspan="4" class="text-center py-4">Belum ada data.</td></tr>`; return; }
+            if (todayRecords.length === 0) { 
+                tableBody.innerHTML = `<tr><td colspan="6" class="text-center py-4">Belum ada data absensi hari ini.</td></tr>`; 
+                return;
+            }
             tableBody.innerHTML = todayRecords.map(rec => {
                 const clockIn = new Date(rec.Waktu_Masuk).toLocaleTimeString('id-ID');
                 const clockOut = rec.Waktu_Keluar ? new Date(rec.Waktu_Keluar).toLocaleTimeString('id-ID') : '-';
                 let totalHours = '-';
                 if(rec.Waktu_Keluar) { totalHours = ((new Date(rec.Waktu_Keluar) - new Date(rec.Waktu_Masuk)) / 3600000).toFixed(2) + ' jam'; }
+                
+                const photoInLink = rec.Foto_Masuk && rec.Foto_Masuk.startsWith('http') 
+                    ? `<div class="thumbnail-container">
+                           <a href="${rec.Foto_Masuk}" target="_blank" class="text-indigo-600 hover:underline">Lihat</a>
+                           <div class="thumbnail-preview"><img src="${rec.Foto_Masuk.replace('/view', '/preview')}" alt="Foto Masuk"></div>
+                       </div>` 
+                    : '-';
+                const photoOutLink = rec.Foto_Keluar && rec.Foto_Keluar.startsWith('http')
+                    ? `<div class="thumbnail-container">
+                           <a href="${rec.Foto_Keluar}" target="_blank" class="text-indigo-600 hover:underline">Lihat</a>
+                           <div class="thumbnail-preview"><img src="${rec.Foto_Keluar.replace('/view', '/preview')}" alt="Foto Keluar"></div>
+                       </div>`
+                    : '-';
+
                 return `<tr class="border-b">
-                    <td class="py-3 px-4 font-medium">${rec.Nama_Karyawan}</td><td class="py-3 px-4">${clockIn}</td>
-                    <td class="py-3 px-4">${clockOut}</td><td class="py-3 px-4">${totalHours}</td></tr>`;
+                    <td class="py-3 px-4 font-medium">${rec.Nama_Karyawan}</td>
+                    <td class="py-3 px-4">${clockIn}</td>
+                    <td class="py-3 px-4">${photoInLink}</td>
+                    <td class="py-3 px-4">${clockOut}</td>
+                    <td class="py-3 px-4">${photoOutLink}</td>
+                    <td class="py-3 px-4">${totalHours}</td>
+                </tr>`;
             }).join('');
         }
         
@@ -529,7 +566,6 @@
                 <button onclick="handleApproval(${r.ID_Izin}, 'ditolak')" class="bg-red-500 text-white px-3 py-1 text-sm rounded">Tolak</button></div></div>`).join('') : '<p>Tidak ada pengajuan.</p>';
         }
 
-        // --- FUNGSI AKSI & EVENT HANDLER ---
         function showEmployeeSection(id) { ['home', 'schedule', 'requests', 'announcements'].forEach(s => { document.getElementById(`employee-${s}`).classList.add('hidden'); document.getElementById(`nav-employee-${s}`).classList.remove('active'); }); document.getElementById(`employee-${id}`).classList.remove('hidden'); document.getElementById(`nav-employee-${id}`).classList.add('active'); }
         function showAdminSection(id) { ['attendance', 'schedule', 'approvals', 'announcements'].forEach(s => { document.getElementById(`admin-${s}`).classList.add('hidden'); document.getElementById(`nav-admin-${s}`).classList.remove('active'); }); document.getElementById(`admin-${id}`).classList.remove('hidden'); document.getElementById(`nav-admin-${id}`).classList.add('active'); }
 
@@ -540,13 +576,26 @@
             const canvas = document.getElementById('canvas');
             const video = document.getElementById('video');
             canvas.getContext('2d').drawImage(video, 0, 0, 320, 240);
+            const photoData = canvas.toDataURL('image/jpeg', 0.8); // Ambil data gambar
             const now = new Date().toISOString();
 
             if (type === 'in') {
-                attendanceRecords.push({ ID_Absensi: Date.now(), ID_Karyawan: loggedInUser.id, Nama_Karyawan: loggedInUser.name, Waktu_Masuk: now, Waktu_Keluar: null, Total_Jam: null });
+                attendanceRecords.push({ 
+                    ID_Absensi: Date.now(), 
+                    ID_Karyawan: loggedInUser.id, 
+                    Nama_Karyawan: loggedInUser.name, 
+                    Waktu_Masuk: now, 
+                    Waktu_Keluar: null, 
+                    Total_Jam: null,
+                    Foto_Masuk: photoData, // Simpan data foto
+                    Foto_Keluar: null
+                });
             } else {
                 const record = attendanceRecords.find(r => r.ID_Karyawan === loggedInUser.id && String(r.Waktu_Masuk).startsWith(getTodayDateString()) && !r.Waktu_Keluar);
-                if (record) { record.Waktu_Keluar = now; }
+                if (record) { 
+                    record.Waktu_Keluar = now; 
+                    record.Foto_Keluar = photoData; // Simpan data foto
+                }
             }
             showToast(`Clock ${type} berhasil!`);
             cancelCamera();
@@ -564,14 +613,24 @@
         
         document.getElementById('scheduleForm').addEventListener('submit', function(e){
             e.preventDefault();
-            schedules.push({ ID_Jadwal: Date.now(), ID_Karyawan: parseInt(document.getElementById('scheduleEmployee').value), Tanggal: document.getElementById('scheduleDate').value, Shift: document.getElementById('scheduleShift').value });
+            const employeeId = parseInt(document.getElementById('scheduleEmployee').value);
+            const employeeName = employees.find(emp => emp.id === employeeId)?.name || '';
+            schedules.push({ ID_Jadwal: Date.now(), ID_Karyawan: employeeId, Nama_Karyawan: employeeName, Tanggal: document.getElementById('scheduleDate').value, Shift: document.getElementById('scheduleShift').value });
             this.reset();
             renderAdminSchedule();
             syncDataToSheet();
         });
         
         function deleteSchedule(id) { schedules = schedules.filter(s => s.ID_Jadwal !== id); renderAdminSchedule(); syncDataToSheet(); }
-        function handleApproval(id, status) { const request = leaveRequests.find(r => r.ID_Izin === id); if(request) request.Status = status; renderAdminApprovals(); syncDataToSheet(); }
+        
+        function handleApproval(id, status) { 
+            const request = leaveRequests.find(r => r.ID_Izin === id); 
+            if(request) {
+                request.Status = status; 
+            }
+            renderAdminApprovals(); 
+            syncDataToSheet(); 
+        }
         
         document.getElementById('announcementForm').addEventListener('submit', function(e){
             e.preventDefault();
@@ -583,10 +642,10 @@
         
         function exportToCSV() {
              if (attendanceRecords.length === 0) return showToast('Tidak ada data.');
-            let csv = "Nama,Masuk,Keluar,Total Jam\n";
+            let csv = "Nama,Masuk,Foto Masuk,Keluar,Foto Keluar,Total Jam\n";
             attendanceRecords.forEach(r => {
                 let total = r.Waktu_Keluar ? ((new Date(r.Waktu_Keluar) - new Date(r.Waktu_Masuk)) / 3600000).toFixed(2) : 'N/A';
-                csv += `${r.Nama_Karyawan},${new Date(r.Waktu_Masuk).toLocaleString('id-ID')},${r.Waktu_Keluar ? new Date(r.Waktu_Keluar).toLocaleString('id-ID') : 'N/A'},${total}\n`;
+                csv += `"${r.Nama_Karyawan}","${new Date(r.Waktu_Masuk).toLocaleString('id-ID')}","${r.Foto_Masuk || 'N/A'}","${r.Waktu_Keluar ? new Date(r.Waktu_Keluar).toLocaleString('id-ID') : 'N/A'}","${r.Foto_Keluar || 'N/A'}","${total}"\n`;
             });
             const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
             const link = document.createElement("a");
@@ -599,7 +658,6 @@
             document.body.removeChild(link);
         }
 
-        // --- INISIALISASI APLIKASI ---
         document.addEventListener('DOMContentLoaded', () => {
             updateTime();
             setInterval(updateTime, 1000);
