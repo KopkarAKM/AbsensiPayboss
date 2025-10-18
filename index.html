@@ -3,667 +3,522 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Absensi Kafe - Terhubung ke Google Sheets</title>
+    <title>PayBoss Cafe - Absensi Kasir</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Inter', sans-serif; }
-        .pin-btn { @apply text-2xl font-bold text-gray-700 bg-gray-200 hover:bg-gray-300 rounded-lg p-4 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-gray-400; }
-        .nav-btn { @apply w-full text-left p-3 rounded-lg transition-colors duration-200; }
-        .nav-btn.active { @apply bg-indigo-600 text-white; }
-        .nav-btn:not(.active) { @apply text-gray-600 hover:bg-gray-200; }
-        
-        /* Gaya untuk Thumbnail Preview */
-        .thumbnail-container {
-            position: relative;
-            display: inline-block;
-        }
-
-        .thumbnail-preview {
-            visibility: hidden;
-            width: 160px; /* Lebar thumbnail */
-            background-color: #555;
-            color: #fff;
-            text-align: center;
-            border-radius: 6px;
-            padding: 5px;
-            position: absolute;
-            z-index: 1;
-            bottom: 125%; /* Posisi di atas elemen */
-            left: 50%;
-            margin-left: -80px; /* Setengah dari lebar untuk menengahkan */
-            opacity: 0;
-            transition: opacity 0.3s;
-        }
-
-        .thumbnail-preview img {
-            width: 100%;
-            border-radius: 4px;
-        }
-
-        .thumbnail-container:hover .thumbnail-preview {
-            visibility: visible;
-            opacity: 1;
-        }
+        body { box-sizing: border-box; }
+        .gradient-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .card-shadow { box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+        .notification-slide { animation: slideDown 0.3s ease-out; }
+        @keyframes slideDown { from { transform: translateY(-100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .camera-preview { border-radius: 15px; border: 3px solid #667eea; }
     </style>
 </head>
-<body class="bg-gray-100 flex items-center justify-center min-h-screen">
-
-    <!-- Loading Overlay -->
-    <div id="loadingOverlay" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div class="text-white text-xl">Memuat data...</div>
-    </div>
-
-    <div class="w-full max-w-5xl mx-auto p-4">
-
-        <!-- Tampilan Login (PIN Karyawan atau Admin) -->
-        <div id="loginView" class="hidden">
-            <div class="bg-white rounded-2xl shadow-lg p-6 md:p-8 max-w-md mx-auto">
-                <div class="text-center mb-6">
-                    <h1 class="text-2xl font-bold text-gray-800">Sistem Manajemen Kafe</h1>
-                    <p id="currentTime" class="text-gray-500"></p>
-                </div>
-                <div class="mb-4">
-                    <div id="pinDisplay" class="w-full text-center text-3xl font-bold tracking-widest bg-gray-100 rounded-lg p-4 h-16 flex items-center justify-center text-gray-700"></div>
-                </div>
-                <div class="grid grid-cols-3 gap-3">
-                    <button onclick="handlePinInput('1')" class="pin-btn">1</button>
-                    <button onclick="handlePinInput('2')" class="pin-btn">2</button>
-                    <button onclick="handlePinInput('3')" class="pin-btn">3</button>
-                    <button onclick="handlePinInput('4')" class="pin-btn">4</button>
-                    <button onclick="handlePinInput('5')" class="pin-btn">5</button>
-                    <button onclick="handlePinInput('6')" class="pin-btn">6</button>
-                    <button onclick="handlePinInput('7')" class="pin-btn">7</button>
-                    <button onclick="handlePinInput('8')" class="pin-btn">8</button>
-                    <button onclick="handlePinInput('9')" class="pin-btn">9</button>
-                    <button onclick="clearPin()" class="text-lg font-bold text-white bg-yellow-500 hover:bg-yellow-600 rounded-lg p-4">C</button>
-                    <button onclick="handlePinInput('0')" class="pin-btn">0</button>
-                    <button onclick="submitPin()" class="text-lg font-bold text-white bg-green-500 hover:bg-green-600 rounded-lg p-4">OK</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Tampilan Karyawan (Setelah Login) -->
-        <div id="employeeView" class="hidden">
-            <div class="bg-white rounded-2xl shadow-lg p-6 md:p-8">
-                <div class="flex justify-between items-center mb-6">
+<body class="min-h-full bg-gray-50">
+    <div class="min-h-full">
+        <header class="gradient-bg text-white p-4">
+            <div class="max-w-4xl mx-auto flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <div class="bg-white p-2 rounded-full"><span class="text-2xl">☕</span></div>
                     <div>
-                        <h1 id="welcomeEmployee" class="text-2xl font-bold text-gray-800"></h1>
-                        <p class="text-gray-500">Selamat bekerja!</p>
+                        <h1 class="text-xl font-bold">PayBoss Cafe</h1>
+                        <p class="text-sm opacity-90">Sistem Absensi Kasir</p>
                     </div>
-                    <button onclick="logout()" class="bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-4 rounded-lg">Keluar</button>
                 </div>
-                
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
-                    <div class="md:col-span-1">
-                        <nav class="flex flex-col space-y-2">
-                            <button onclick="showEmployeeSection('home')" id="nav-employee-home" class="nav-btn active">Beranda</button>
-                            <button onclick="showEmployeeSection('schedule')" id="nav-employee-schedule" class="nav-btn">Jadwal Saya</button>
-                            <button onclick="showEmployeeSection('requests')" id="nav-employee-requests" class="nav-btn">Ajukan Izin</button>
-                            <button onclick="showEmployeeSection('announcements')" id="nav-employee-announcements" class="nav-btn">Pengumuman</button>
-                        </nav>
-                    </div>
+                <div class="text-right">
+                    <p class="text-sm opacity-90">Selamat datang,</p>
+                    <p class="font-semibold" id="employeeName">Memuat...</p>
+                </div>
+            </div>
+        </header>
 
-                    <div class="md:col-span-3">
-                        <div id="employee-home">
-                            <h2 class="text-xl font-semibold mb-4 text-gray-700">Absensi Hari Ini</h2>
-                            <div class="bg-gray-50 p-6 rounded-lg text-center">
-                                <p id="employeeStatus" class="mb-4 font-medium text-gray-600"></p>
-                                <button id="clockButton" class="text-white font-bold py-3 px-6 rounded-lg transition-transform transform hover:scale-105"></button>
+        <div id="notificationBanner" class="bg-yellow-100 border-l-4 border-yellow-500 p-4 hidden notification-slide">
+            <div class="max-w-4xl mx-auto flex items-center">
+                <span class="text-yellow-600 mr-2">📢</span>
+                <div>
+                    <p class="font-semibold text-yellow-800">Pengumuman Manager:</p>
+                    <p class="text-yellow-700" id="managerMessage">Memuat pengumuman...</p>
+                </div>
+                <button onclick="closeNotification()" class="ml-auto text-yellow-600 hover:text-yellow-800">✕</button>
+            </div>
+        </div>
+
+        <main class="max-w-4xl mx-auto p-4 space-y-6">
+            <div class="bg-white rounded-lg card-shadow p-6">
+                <div class="text-center">
+                    <div class="text-3xl font-bold text-gray-800" id="currentTime">00:00:00</div>
+                    <div class="text-lg text-gray-600" id="currentDate">Memuat tanggal...</div>
+                    <div id="shiftInfoContainer" class="mt-4 inline-block bg-blue-100 text-blue-800 px-4 py-2 rounded-full hidden">
+                        <span class="font-semibold" id="shiftInfo">Memuat shift...</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-lg card-shadow p-6">
+                <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                    <span class="mr-2">📸</span> Absensi Hari Ini
+                </h2>
+                <div class="grid md:grid-cols-2 gap-6">
+                    <div class="space-y-4">
+                        <div class="bg-gray-100 rounded-lg p-4 text-center">
+                            <video id="cameraPreview" class="camera-preview w-full h-48 bg-gray-300 hidden" autoplay></video>
+                            <canvas id="photoCanvas" class="camera-preview w-full h-48 bg-gray-300 hidden"></canvas>
+                            <div id="cameraPlaceholder" class="camera-preview w-full h-48 bg-gray-300 flex items-center justify-center">
+                                <div class="text-center text-gray-500">
+                                    <span class="text-4xl block mb-2">📷</span>
+                                    <p>Klik tombol untuk mengaktifkan kamera</p>
+                                </div>
                             </div>
-                            <div class="mt-6">
-                                <h3 class="text-lg font-semibold mb-2 text-gray-700">Jadwal Hari Ini</h3>
-                                <p id="todaySchedule" class="bg-gray-50 p-4 rounded-lg text-gray-800"></p>
-                            </div>
                         </div>
-                        <div id="employee-schedule" class="hidden">
-                             <h2 class="text-xl font-semibold mb-4 text-gray-700">Jadwal Kerja Saya</h2>
-                             <div id="employeeScheduleContent" class="space-y-3"></div>
-                        </div>
-                        <div id="employee-requests" class="hidden">
-                            <h2 class="text-xl font-semibold mb-4 text-gray-700">Formulir Pengajuan Izin</h2>
-                            <form id="leaveRequestForm" class="space-y-4">
-                                <div>
-                                    <label for="requestType" class="block text-sm font-medium text-gray-700">Jenis Izin</label>
-                                    <select id="requestType" class="mt-1 block w-full p-2 border border-gray-300 rounded-md">
-                                        <option>Sakit</option>
-                                        <option>Cuti</option>
-                                        <option>Izin Khusus</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label for="requestDate" class="block text-sm font-medium text-gray-700">Tanggal</label>
-                                    <input type="date" id="requestDate" class="mt-1 block w-full p-2 border border-gray-300 rounded-md" required>
-                                </div>
-                                <div>
-                                    <label for="requestReason" class="block text-sm font-medium text-gray-700">Alasan</label>
-                                    <textarea id="requestReason" rows="3" class="mt-1 block w-full p-2 border border-gray-300 rounded-md" required></textarea>
-                                </div>
-                                <button type="submit" class="w-full bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-2 px-4 rounded-lg">Kirim Pengajuan</button>
-                            </form>
-                            <h3 class="text-lg font-semibold mt-6 mb-2 text-gray-700">Riwayat Pengajuan</h3>
-                            <div id="employeeRequestsHistory" class="space-y-2"></div>
-                        </div>
-                        <div id="employee-announcements" class="hidden">
-                            <h2 class="text-xl font-semibold mb-4 text-gray-700">Papan Pengumuman</h2>
-                            <div id="announcementList" class="space-y-4"></div>
+                        <div class="flex space-x-2">
+                            <button id="startCameraBtn" onclick="startCamera()" class="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors">
+                                Aktifkan Kamera
+                            </button>
+                            <button id="takePhotoBtn" onclick="takePhoto()" class="flex-1 bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition-colors hidden">
+                                Ambil Foto
+                            </button>
                         </div>
                     </div>
+                    <div class="space-y-4">
+                        <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+                            <h3 class="font-semibold text-green-800 mb-2">Status Absensi</h3>
+                            <div id="attendanceStatus" class="text-sm text-green-600">
+                                Belum absen masuk hari ini
+                            </div>
+                            <div id="workDuration" class="text-sm text-gray-600 mt-1 hidden">
+                                Durasi kerja: <span id="workTime">0 jam 0 menit</span>
+                            </div>
+                        </div>
+                        <button id="clockInBtn" onclick="clockIn()" class="w-full bg-green-600 text-white py-3 px-4 rounded-lg hover:bg-green-700 transition-colors font-semibold">
+                            🕐 Absen Masuk
+                        </button>
+                        <button id="clockOutBtn" onclick="showClockOutModal()" class="w-full bg-red-600 text-white py-3 px-4 rounded-lg hover:bg-red-700 transition-colors font-semibold hidden">
+                            🕐 Absen Keluar
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-lg card-shadow p-6">
+                <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                    <span class="mr-2">📅</span> Jadwal Roster Kerja
+                </h2>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead>
+                            <tr class="bg-gray-50">
+                                <th class="text-left p-3 font-semibold">Hari</th>
+                                <th class="text-left p-3 font-semibold">Tanggal</th>
+                                <th class="text-left p-3 font-semibold">Shift</th>
+                                <th class="text-left p-3 font-semibold">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="scheduleTable">
+                            <tr><td colspan="4" class="text-center p-4 text-gray-500">Memuat jadwal...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+
+        <div id="clockOutModal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center p-4 z-50">
+            <div class="bg-white rounded-lg max-w-md w-full p-6">
+                <h3 class="text-lg font-bold text-gray-800 mb-4">Konfirmasi Absen Keluar</h3>
+                <div id="earlyLeaveWarning" class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4 hidden">
+                    <div class="flex items-start">
+                        <span class="text-yellow-500 mr-2">⚠️</span>
+                        <div>
+                            <p class="font-semibold text-yellow-800">Peringatan!</p>
+                            <p class="text-yellow-700 text-sm">Anda akan pulang lebih cepat dari jadwal shift. Mohon berikan alasan kepada manager.</p>
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <label for="leaveReason" class="block text-sm font-medium text-gray-700 mb-2">Alasan ijin pulang cepat:</label>
+                        <textarea id="leaveReason" rows="3" class="w-full border border-gray-300 rounded-lg p-3 text-sm" placeholder="Contoh: Ada keperluan keluarga mendesak..."></textarea>
+                    </div>
+                </div>
+                <div class="text-center mb-4">
+                    <p class="text-gray-600">Waktu keluar: <span id="clockOutTime" class="font-semibold"></span></p>
+                    <p class="text-gray-600">Total jam kerja: <span id="totalWorkTime" class="font-semibold"></span></p>
+                </div>
+                <div class="flex space-x-3">
+                    <button onclick="closeClockOutModal()" class="flex-1 bg-gray-300 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-400 transition-colors">
+                        Batal
+                    </button>
+                    <button onclick="confirmClockOut()" class="flex-1 bg-red-600 text-white py-2 px-4 rounded-lg hover:bg-red-700 transition-colors">
+                        Konfirmasi Keluar
+                    </button>
                 </div>
             </div>
         </div>
 
-        <!-- Tampilan Admin -->
-        <div id="adminView" class="hidden">
-           <div class="bg-white rounded-2xl shadow-lg p-6 md:p-8">
-                <div class="flex justify-between items-center mb-6">
-                    <h1 class="text-2xl font-bold text-gray-800">Dashboard Admin</h1>
-                    <button onclick="logout()" class="bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-4 rounded-lg">Keluar</button>
-                </div>
-
-                 <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
-                    <div class="md:col-span-1">
-                        <nav class="flex flex-col space-y-2">
-                             <button onclick="showAdminSection('attendance')" id="nav-admin-attendance" class="nav-btn active">Laporan Absensi</button>
-                             <button onclick="showAdminSection('schedule')" id="nav-admin-schedule" class="nav-btn">Manajemen Jadwal</button>
-                             <button onclick="showAdminSection('approvals')" id="nav-admin-approvals" class="nav-btn">Persetujuan Izin</button>
-                             <button onclick="showAdminSection('announcements')" id="nav-admin-announcements" class="nav-btn">Buat Pengumuman</button>
-                        </nav>
-                    </div>
-
-                    <div class="md:col-span-3">
-                        <div id="admin-attendance">
-                            <div class="mb-4">
-                                <button onclick="exportToCSV()" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg">Ekspor ke CSV</button>
-                            </div>
-                            <div class="overflow-x-auto">
-                                <table class="min-w-full bg-white">
-                                    <thead class="bg-gray-100">
-                                        <tr>
-                                            <th class="py-3 px-4 text-left text-xs font-semibold text-gray-600 uppercase">Nama</th>
-                                            <th class="py-3 px-4 text-left text-xs font-semibold text-gray-600 uppercase">Masuk</th>
-                                            <th class="py-3 px-4 text-left text-xs font-semibold text-gray-600 uppercase">Foto Masuk</th>
-                                            <th class="py-3 px-4 text-left text-xs font-semibold text-gray-600 uppercase">Keluar</th>
-                                            <th class="py-3 px-4 text-left text-xs font-semibold text-gray-600 uppercase">Foto Keluar</th>
-                                            <th class="py-3 px-4 text-left text-xs font-semibold text-gray-600 uppercase">Total Jam</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="attendanceTableBody" class="text-gray-700"></tbody>
-                                </table>
-                            </div>
-                        </div>
-                        <div id="admin-schedule" class="hidden">
-                            <h2 class="text-xl font-semibold mb-4 text-gray-700">Buat Jadwal Shift</h2>
-                            <form id="scheduleForm" class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end bg-gray-50 p-4 rounded-lg mb-6">
-                                <div>
-                                    <label for="scheduleEmployee" class="block text-sm font-medium text-gray-700">Karyawan</label>
-                                    <select id="scheduleEmployee" class="mt-1 block w-full p-2 border border-gray-300 rounded-md"></select>
-                                </div>
-                                <div>
-                                    <label for="scheduleDate" class="block text-sm font-medium text-gray-700">Tanggal</label>
-                                    <input type="date" id="scheduleDate" class="mt-1 block w-full p-2 border border-gray-300 rounded-md" required>
-                                </div>
-                                <div>
-                                    <label for="scheduleShift" class="block text-sm font-medium text-gray-700">Shift</label>
-                                    <input type="text" id="scheduleShift" placeholder="Cth: Pagi (08:00-16:00)" class="mt-1 block w-full p-2 border border-gray-300 rounded-md" required>
-                                </div>
-                                <div class="md:col-span-3">
-                                    <button type="submit" class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-lg">Simpan Jadwal</button>
-                                </div>
-                            </form>
-                             <h3 class="text-lg font-semibold mt-6 mb-2 text-gray-700">Jadwal Tersimpan</h3>
-                             <div id="adminScheduleList" class="space-y-2"></div>
-                        </div>
-                        <div id="admin-approvals" class="hidden">
-                             <h2 class="text-xl font-semibold mb-4 text-gray-700">Pengajuan Izin Masuk</h2>
-                             <div id="adminApprovalList" class="space-y-3"></div>
-                        </div>
-                        <div id="admin-announcements" class="hidden">
-                             <h2 class="text-xl font-semibold mb-4 text-gray-700">Formulir Pengumuman</h2>
-                            <form id="announcementForm" class="space-y-4">
-                                <div>
-                                    <label for="announcementTitle" class="block text-sm font-medium text-gray-700">Judul</label>
-                                    <input type="text" id="announcementTitle" class="mt-1 block w-full p-2 border border-gray-300 rounded-md" required>
-                                </div>
-                                <div>
-                                    <label for="announcementContent" class="block text-sm font-medium text-gray-700">Isi Pengumuman</label>
-                                    <textarea id="announcementContent" rows="4" class="mt-1 block w-full p-2 border border-gray-300 rounded-md" required></textarea>
-                                </div>
-                                <button type="submit" class="w-full bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-2 px-4 rounded-lg">Publikasikan</button>
-                            </form>
-                        </div>
-                    </div>
-                 </div>
+        <div id="successModal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center p-4 z-50">
+            <div class="bg-white rounded-lg max-w-sm w-full p-6 text-center">
+                <div class="text-green-500 text-5xl mb-4">✅</div>
+                <h3 class="text-lg font-bold text-gray-800 mb-2" id="successTitle">Absensi Berhasil!</h3>
+                <p class="text-gray-600 mb-4" id="successMessage">Aksi berhasil dicatat</p>
+                <button onclick="closeSuccessModal()" class="bg-green-600 text-white py-2 px-6 rounded-lg hover:bg-green-700 transition-colors">
+                    OK
+                </button>
             </div>
         </div>
-
-        <!-- Modal & Notifikasi -->
-        <div id="cameraModal" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center hidden z-50">
-            <div class="bg-white p-6 rounded-2xl shadow-xl text-center">
-                <h2 id="cameraHeader" class="text-xl font-bold mb-4">Ambil Foto</h2>
-                <video id="video" width="320" height="240" autoplay class="rounded-lg mb-4"></video>
-                <button id="captureButton" class="w-full bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg">Ambil Gambar</button>
-                <button onclick="cancelCamera()" class="w-full bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded-lg mt-2">Batal</button>
-            </div>
-        </div>
-        <div id="toast" class="fixed bottom-5 right-5 bg-gray-800 text-white py-2 px-4 rounded-lg shadow-lg opacity-0 transition-opacity duration-300 z-50">
-            <p id="toastMessage"></p>
-        </div>
-        <canvas id="canvas" width="320" height="240" class="hidden"></canvas>
     </div>
 
     <script>
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycby91farnL33RyB30SSa-dzV_Mqn_Ekf2OSYf5zrLLEa6YcUbm-laYPqDaaLP2exyTXoeg/exec";
-        
-        const ADMIN_PIN = '0000';
-        const employees = [
-            { id: 1, pin: '1234', name: 'Andi' },
-            { id: 2, pin: '5678', name: 'Budi' },
-            { id: 3, pin: '1122', name: 'Citra' }
-        ];
+        // =============================================
+        // URL WEB APP ANDA
+        // =============================================
+        const GAS_URL = "https://script.google.com/macros/s/AKfycbzNtA8PdlbZQ_Jw_5JNLlDnhT-EYq-ylpmMrFIgedqGObtfcGVkpV50DSS4AGxrDjsE/exec";
+        // =============================================
 
-        let currentPin = '';
-        let stream;
-        let loggedInUser = null;
-        let attendanceRecords = [];
-        let schedules = [];
-        let leaveRequests = [];
-        let announcements = [];
-        
-        const pinDisplay = document.getElementById('pinDisplay');
-        const currentTimeEl = document.getElementById('currentTime');
-        const loginView = document.getElementById('loginView');
-        const employeeView = document.getElementById('employeeView');
-        const adminView = document.getElementById('adminView');
-        const loadingOverlay = document.getElementById('loadingOverlay');
-        const toast = document.getElementById('toast');
-        const toastMessage = document.getElementById('toastMessage');
+        let clockInTime = null;
+        let currentStream = null;
+        let photoTaken = false;
+        let employeeId = null;
+        let employeeData = {}; // Untuk menyimpan data shift
+        let workDurationInterval = null;
 
-        
-        function fetchGoogleScript(url, options = {}) {
-            return new Promise((resolve, reject) => {
-                const method = options.method || 'GET';
-                const finalUrl = url + (url.includes('?') ? '&' : '?') + 't=' + new Date().getTime(); 
-
-                const xhr = new XMLHttpRequest();
-                xhr.open(method, finalUrl, true);
-
-                xhr.onload = function() {
-                    if (xhr.status >= 200 && xhr.status < 400) {
-                        if (!xhr.responseText) {
-                            return reject(new Error("Received empty response from server. Check script deployment and permissions."));
-                        }
-                        try {
-                            const jsonResponse = JSON.parse(xhr.responseText);
-                            resolve(jsonResponse);
-                        } catch (e) {
-                            console.error("Failed to parse JSON response:", xhr.responseText);
-                            reject(new Error("Invalid JSON response from server. It might be an HTML error page from Google."));
-                        }
-                    } else {
-                        reject(new Error(`Network request failed with status ${xhr.status}: ${xhr.statusText}`));
-                    }
-                };
-
-                xhr.onerror = function() {
-                    reject(new Error('Network request failed. This is likely a CORS issue. Please ensure the script is deployed with access for "Anyone".'));
-                };
-                
-                xhr.ontimeout = function () {
-                    reject(new Error('Request timed out.'));
-                };
-
-                if (method === 'POST' && options.body) {
-                    xhr.setRequestHeader('Content-Type', 'text/plain;charset=UTF-8');
-                    xhr.send(options.body);
-                } else {
-                    xhr.send();
-                }
-            });
+        // Mendapatkan ID Karyawan dari URL
+        function getEmployeeIdFromUrl() {
+            const params = new URLSearchParams(window.location.search);
+            return params.get('id');
         }
 
-
-        async function loadInitialData() {
-            try {
-                const result = await fetchGoogleScript(SCRIPT_URL);
-                if (result && result.status === "success") {
-                    attendanceRecords = (result.data.attendance || []).map(r => ({ ...r, ID_Absensi: parseInt(r.ID_Absensi), ID_Karyawan: parseInt(r.ID_Karyawan) }));
-                    leaveRequests = (result.data.leaveRequests || []).map(r => ({ ...r, ID_Izin: parseInt(r.ID_Izin), ID_Karyawan: parseInt(r.ID_Karyawan) }));
-                    schedules = (result.data.schedules || []).map(r => ({ ...r, ID_Jadwal: parseInt(r.ID_Jadwal), ID_Karyawan: parseInt(r.ID_Karyawan) }));
-                    announcements = (result.data.announcements || []).map(r => ({ ...r, ID_Pengumuman: parseInt(r.ID_Pengumuman) }));
-                    
-                    loadingOverlay.classList.add('hidden');
-                    loginView.classList.remove('hidden');
-                    showToast("Data berhasil dimuat dari Google Sheets.");
-                } else {
-                    throw new Error(result.message || "Unknown error from script.");
-                }
-            } catch (error) {
-                console.error("Error loading data:", error);
-                const errorHtml = `
-                    <div class="bg-white rounded-2xl shadow-lg p-6 md:p-8 max-w-lg mx-auto">
-                        <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-md" role="alert">
-                            <p class="font-bold">Gagal Terhubung ke Google Sheets</p>
-                            <p class="mt-2">Aplikasi tidak dapat mengambil data. Masalah ini hampir selalu disebabkan oleh pengaturan izin pada Google Script Anda.</p>
-                            <p class="mt-3 font-semibold">Mohon periksa kembali langkah-langkah berikut:</p>
-                            <ol class="list-decimal list-inside mt-2 space-y-1 text-sm">
-                                <li>Buka editor Google Apps Script Anda.</li>
-                                <li>Klik tombol biru <strong>"Deploy"</strong>, lalu pilih <strong>"Manage deployments"</strong>.</li>
-                                <li>Pada deployment yang aktif, klik ikon pensil (Edit).</li>
-                                <li>Di bagian "Web app", cari "Who has access" dan pastikan Anda memilih opsi <strong>"Anyone"</strong>.</li>
-                                <li>Klik <strong>"Deploy"</strong> untuk menyimpan dan menerapkan perubahan.</li>
-                            </ol>
-                            <p class="mt-3">Setelah langkah-langkah di atas selesai, silakan <strong>muat ulang (refresh) halaman aplikasi ini</strong>.</p>
-                        </div>
-                    </div>
-                `;
-                loadingOverlay.classList.add('hidden');
-                const mainContainer = document.querySelector('.w-full.max-w-5xl');
-                if (mainContainer) {
-                    mainContainer.innerHTML = errorHtml;
-                }
-            }
-        }
-
-
-        async function syncDataToSheet() {
-            showToast("Menyimpan data...");
-            const payload = {
-                attendance: attendanceRecords,
-                leaveRequests: leaveRequests,
-                schedules: schedules,
-                announcements: announcements
-            };
-            try {
-                const options = {
-                    method: 'POST',
-                    body: JSON.stringify({ action: 'saveData', payload: payload }),
-                };
-                const result = await fetchGoogleScript(SCRIPT_URL, options);
-                if (result && result.status === 'success') {
-                    showToast("Data berhasil disinkronkan.");
-                } else {
-                    throw new Error(result.message || "Unknown error from script when saving.");
-                }
-            } catch (error) {
-                const errorMessage = "Gagal menyimpan data. Periksa koneksi dan izin script.";
-                showToast(errorMessage, true);
-                console.error("Error saving data:", error);
-            }
-        }
-
-        function showToast(message, isError = false) {
-            toastMessage.textContent = message;
-            toast.classList.remove('opacity-0');
-            
-            if (isError) {
-                toast.classList.remove('bg-gray-800');
-                toast.classList.add('bg-red-600');
-            } else {
-                toast.classList.remove('bg-red-600');
-                toast.classList.add('bg-gray-800');
-            }
-            
-            setTimeout(() => {
-                toast.classList.add('opacity-0');
-            }, isError ? 8000 : 3000); 
-        }
-
-        function getTodayDateString() { return new Date().toISOString().split('T')[0]; }
-        function updateTime() {
-            const now = new Date();
-            currentTimeEl.textContent = now.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long' }) + ' ' + now.toLocaleTimeString('id-ID');
-        }
-        function handlePinInput(num) { if (currentPin.length < 4) { currentPin += num; pinDisplay.textContent = '*'.repeat(currentPin.length); } }
-        function clearPin() { currentPin = ''; pinDisplay.textContent = ''; }
-        
-        function submitPin() {
-            if (currentPin === ADMIN_PIN) {
-                loggedInUser = { id: 'admin', name: 'Admin' };
-                loginView.classList.add('hidden');
-                adminView.classList.remove('hidden');
-                renderAdminView();
-            } else {
-                const employee = employees.find(e => e.pin === currentPin);
-                if (employee) {
-                    loggedInUser = employee;
-                    loginView.classList.add('hidden');
-                    employeeView.classList.remove('hidden');
-                    renderEmployeeView();
-                } else {
-                    showToast('PIN tidak valid!');
-                }
-            }
-            clearPin();
-        }
-
-        function logout() {
-            loggedInUser = null;
-            employeeView.classList.add('hidden');
-            adminView.classList.add('hidden');
-            loginView.classList.remove('hidden');
-        }
-
-        function renderEmployeeView() {
-            document.getElementById('welcomeEmployee').textContent = `Selamat Datang, ${loggedInUser.name}`;
-            showEmployeeSection('home');
-            renderEmployeeHome();
-            renderEmployeeSchedule();
-            renderEmployeeRequests();
-            renderAnnouncements();
-        }
-        
-        function renderEmployeeHome() {
-            const todayRecord = attendanceRecords.find(r => r.ID_Karyawan === loggedInUser.id && String(r.Waktu_Masuk).startsWith(getTodayDateString()));
-            const clockButton = document.getElementById('clockButton');
-            const employeeStatus = document.getElementById('employeeStatus');
-            
-            if (!todayRecord) {
-                employeeStatus.textContent = "Anda belum absen masuk hari ini.";
-                clockButton.textContent = "Clock In";
-                clockButton.className = "text-white font-bold py-3 px-6 rounded-lg bg-green-500 hover:bg-green-600";
-                clockButton.onclick = () => startCamera('in');
-            } else if (todayRecord && !todayRecord.Waktu_Keluar) {
-                employeeStatus.textContent = `Anda masuk pada jam ${new Date(todayRecord.Waktu_Masuk).toLocaleTimeString('id-ID')}.`;
-                clockButton.textContent = "Clock Out";
-                clockButton.className = "text-white font-bold py-3 px-6 rounded-lg bg-red-500 hover:bg-red-600";
-                clockButton.onclick = () => startCamera('out');
-            } else {
-                employeeStatus.textContent = "Anda sudah menyelesaikan absensi hari ini.";
-                clockButton.textContent = "Selesai";
-                clockButton.className = "text-white font-bold py-3 px-6 rounded-lg bg-gray-400 cursor-not-allowed";
-                clockButton.onclick = null;
-            }
-
-            const todaySchedule = schedules.find(s => s.ID_Karyawan === loggedInUser.id && String(s.Tanggal).startsWith(getTodayDateString()));
-            document.getElementById('todaySchedule').textContent = todaySchedule ? `Shift: ${todaySchedule.Shift}` : 'Tidak ada jadwal untuk hari ini.';
-        }
-
-        function renderEmployeeSchedule() {
-            const scheduleContent = document.getElementById('employeeScheduleContent');
-            const mySchedules = schedules.filter(s => s.ID_Karyawan === loggedInUser.id).sort((a,b) => new Date(a.Tanggal) - new Date(b.Tanggal));
-            scheduleContent.innerHTML = mySchedules.length ? mySchedules.map(s => `<div class="bg-gray-50 p-3 rounded-md"><strong>${new Date(s.Tanggal).toLocaleDateString('id-ID', {weekday: 'long', day: 'numeric', month: 'long'})}:</strong> ${s.Shift}</div>`).join('') : '<p>Belum ada jadwal.</p>';
-        }
-        
-        function renderEmployeeRequests() {
-            const history = document.getElementById('employeeRequestsHistory');
-            const myRequests = leaveRequests.filter(r => r.ID_Karyawan === loggedInUser.id);
-            if (myRequests.length > 0) {
-                history.innerHTML = myRequests.map(r => {
-                    let statusClass = r.Status === 'disetujui' ? 'bg-green-100 text-green-800' : r.Status === 'ditolak' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800';
-                    return `<div class="bg-gray-50 p-3 rounded-md flex justify-between items-center">
-                            <div><p><strong>${r.Jenis_Izin}</strong> - ${new Date(r.Tanggal).toLocaleDateString('id-ID')}</p><p class="text-sm text-gray-500">${r.Alasan}</p></div>
-                            <span class="text-xs font-medium px-2 py-1 rounded-full ${statusClass}">${r.Status}</span></div>`;
-                }).join('');
-            } else { history.innerHTML = '<p>Belum ada pengajuan izin.</p>'; }
-        }
-        
-        function renderAnnouncements() {
-            const list = document.getElementById('announcementList');
-            list.innerHTML = announcements.length ? [...announcements].reverse().map(a => `
-                <div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-r-lg">
-                    <h4 class="font-bold text-blue-800">${a.Judul}</h4><p class="text-gray-700 mt-1">${a.Isi_Pengumuman}</p>
-                    <p class="text-xs text-gray-500 mt-2">Dipublikasikan pada ${new Date(a.Tanggal_Publikasi).toLocaleString('id-ID')}</p></div>`).join('') : '<p>Tidak ada pengumuman.</p>';
-        }
-
-        function renderAdminView() {
-            showAdminSection('attendance'); renderAttendanceTable(); renderAdminSchedule(); renderAdminApprovals();
-        }
-        
-        function renderAttendanceTable() {
-            const tableBody = document.getElementById('attendanceTableBody');
-            const todayRecords = attendanceRecords.filter(r => String(r.Waktu_Masuk).startsWith(getTodayDateString()));
-            if (todayRecords.length === 0) { 
-                tableBody.innerHTML = `<tr><td colspan="6" class="text-center py-4">Belum ada data absensi hari ini.</td></tr>`; 
+        // Memuat data awal karyawan
+        async function loadEmployeeData() {
+            employeeId = getEmployeeIdFromUrl();
+            if (!employeeId) {
+                document.body.innerHTML = "<h1 class='text-center text-red-500 p-10'>Error: ID Karyawan tidak ditemukan di URL. Harap akses menggunakan link: .../karyawan.html?id=K001</h1>";
                 return;
             }
-            tableBody.innerHTML = todayRecords.map(rec => {
-                const clockIn = new Date(rec.Waktu_Masuk).toLocaleTimeString('id-ID');
-                const clockOut = rec.Waktu_Keluar ? new Date(rec.Waktu_Keluar).toLocaleTimeString('id-ID') : '-';
-                let totalHours = '-';
-                if(rec.Waktu_Keluar) { totalHours = ((new Date(rec.Waktu_Keluar) - new Date(rec.Waktu_Masuk)) / 3600000).toFixed(2) + ' jam'; }
+            
+            showNotification('Memuat data Anda...', 'info');
+            try {
+                const response = await fetch(`${GAS_URL}?action=getEmployeeData&id=${employeeId}`);
+                const result = await response.json();
                 
-                const photoInLink = rec.Foto_Masuk && rec.Foto_Masuk.startsWith('http') 
-                    ? `<div class="thumbnail-container">
-                           <a href="${rec.Foto_Masuk}" target="_blank" class="text-indigo-600 hover:underline">Lihat</a>
-                           <div class="thumbnail-preview"><img src="${rec.Foto_Masuk.replace('/view', '/preview')}" alt="Foto Masuk"></div>
-                       </div>` 
-                    : '-';
-                const photoOutLink = rec.Foto_Keluar && rec.Foto_Keluar.startsWith('http')
-                    ? `<div class="thumbnail-container">
-                           <a href="${rec.Foto_Keluar}" target="_blank" class="text-indigo-600 hover:underline">Lihat</a>
-                           <div class="thumbnail-preview"><img src="${rec.Foto_Keluar.replace('/view', '/preview')}" alt="Foto Keluar"></div>
-                       </div>`
-                    : '-';
-
-                return `<tr class="border-b">
-                    <td class="py-3 px-4 font-medium">${rec.Nama_Karyawan}</td>
-                    <td class="py-3 px-4">${clockIn}</td>
-                    <td class="py-3 px-4">${photoInLink}</td>
-                    <td class="py-3 px-4">${clockOut}</td>
-                    <td class="py-3 px-4">${photoOutLink}</td>
-                    <td class="py-3 px-4">${totalHours}</td>
-                </tr>`;
-            }).join('');
-        }
-        
-        function renderAdminSchedule() {
-            document.getElementById('scheduleEmployee').innerHTML = employees.map(e => `<option value="${e.id}">${e.name}</option>`).join('');
-            const list = document.getElementById('adminScheduleList');
-            list.innerHTML = [...schedules].sort((a,b) => new Date(a.Tanggal) - new Date(b.Tanggal)).map(s => `
-                <div class="bg-gray-50 p-3 rounded-md flex justify-between items-center">
-                    <p><strong>${s.Nama_Karyawan}</strong> - ${new Date(s.Tanggal).toLocaleDateString('id-ID')} - ${s.Shift}</p>
-                    <button onclick="deleteSchedule(${s.ID_Jadwal})" class="text-red-500 hover:text-red-700">Hapus</button></div>`).join('');
-        }
-        
-        function renderAdminApprovals() {
-            const list = document.getElementById('adminApprovalList');
-            const pendingRequests = leaveRequests.filter(r => r.Status === 'pending');
-            list.innerHTML = pendingRequests.length ? pendingRequests.map(r => `
-                <div class="bg-gray-50 p-4 rounded-lg"><p><strong>${r.Nama_Karyawan}</strong> - ${r.Jenis_Izin} (${new Date(r.Tanggal).toLocaleDateString('id-ID')})</p>
-                <p class="text-sm text-gray-600 my-2">"${r.Alasan}"</p><div class="flex space-x-2">
-                <button onclick="handleApproval(${r.ID_Izin}, 'disetujui')" class="bg-green-500 text-white px-3 py-1 text-sm rounded">Setujui</button>
-                <button onclick="handleApproval(${r.ID_Izin}, 'ditolak')" class="bg-red-500 text-white px-3 py-1 text-sm rounded">Tolak</button></div></div>`).join('') : '<p>Tidak ada pengajuan.</p>';
+                if (result.status === 'success') {
+                    employeeData = result.data;
+                    populateEmployeeData(employeeData);
+                    showNotification('Data berhasil dimuat', 'success');
+                } else {
+                    throw new Error(result.message);
+                }
+            } catch (error) {
+                showNotification(`Error: ${error.message}`, 'error');
+            }
         }
 
-        function showEmployeeSection(id) { ['home', 'schedule', 'requests', 'announcements'].forEach(s => { document.getElementById(`employee-${s}`).classList.add('hidden'); document.getElementById(`nav-employee-${s}`).classList.remove('active'); }); document.getElementById(`employee-${id}`).classList.remove('hidden'); document.getElementById(`nav-employee-${id}`).classList.add('active'); }
-        function showAdminSection(id) { ['attendance', 'schedule', 'approvals', 'announcements'].forEach(s => { document.getElementById(`admin-${s}`).classList.add('hidden'); document.getElementById(`nav-admin-${s}`).classList.remove('active'); }); document.getElementById(`admin-${id}`).classList.remove('hidden'); document.getElementById(`nav-admin-${id}`).classList.add('active'); }
-
-        async function startCamera(type) { document.getElementById('cameraHeader').textContent = `Foto untuk Clock ${type.charAt(0).toUpperCase() + type.slice(1)}`; cameraModal.classList.remove('hidden'); try { stream = await navigator.mediaDevices.getUserMedia({ video: true }); document.getElementById('video').srcObject = stream; const newCaptureButton = document.getElementById('captureButton').cloneNode(true); document.getElementById('captureButton').parentNode.replaceChild(newCaptureButton, document.getElementById('captureButton')); newCaptureButton.addEventListener('click', () => capturePhoto(type)); newCaptureButton.id = 'captureButton'; } catch (err) { showToast('Tidak bisa mengakses kamera.'); cancelCamera(); } }
-        function cancelCamera() { cameraModal.classList.add('hidden'); if (stream) { stream.getTracks().forEach(track => track.stop()); } }
-        
-        function capturePhoto(type) {
-            const canvas = document.getElementById('canvas');
-            const video = document.getElementById('video');
-            canvas.getContext('2d').drawImage(video, 0, 0, 320, 240);
-            const photoData = canvas.toDataURL('image/jpeg', 0.8); // Ambil data gambar
-            const now = new Date().toISOString();
-
-            if (type === 'in') {
-                attendanceRecords.push({ 
-                    ID_Absensi: Date.now(), 
-                    ID_Karyawan: loggedInUser.id, 
-                    Nama_Karyawan: loggedInUser.name, 
-                    Waktu_Masuk: now, 
-                    Waktu_Keluar: null, 
-                    Total_Jam: null,
-                    Foto_Masuk: photoData, // Simpan data foto
-                    Foto_Keluar: null
-                });
+        // Mengisi data ke HTML
+        function populateEmployeeData(data) {
+            document.getElementById('employeeName').textContent = data.employeeName;
+            
+            // Info Shift
+            if(data.currentShift) {
+                document.getElementById('shiftInfo').textContent = data.currentShift;
+                document.getElementById('shiftInfoContainer').classList.remove('hidden');
             } else {
-                const record = attendanceRecords.find(r => r.ID_Karyawan === loggedInUser.id && String(r.Waktu_Masuk).startsWith(getTodayDateString()) && !r.Waktu_Keluar);
-                if (record) { 
-                    record.Waktu_Keluar = now; 
-                    record.Foto_Keluar = photoData; // Simpan data foto
+                document.getElementById('shiftInfoContainer').classList.add('hidden');
+            }
+            
+            // Status Absensi
+            if (data.attendanceStatus) {
+                const status = data.attendanceStatus;
+                clockInTime = new Date(`${status.Tanggal} ${status.Jam_Masuk}`);
+                
+                if (!status.Jam_Keluar) {
+                    // Masih bekerja
+                    document.getElementById('attendanceStatus').textContent = `Sudah absen masuk pada ${status.Jam_Masuk}`;
+                    document.getElementById('workDuration').classList.remove('hidden');
+                    document.getElementById('clockInBtn').classList.add('hidden');
+                    document.getElementById('clockOutBtn').classList.remove('hidden');
+                    startWorkDurationTimer();
+                } else {
+                    // Sudah pulang
+                    document.getElementById('attendanceStatus').textContent = `Selesai bekerja. Absen keluar pada ${status.Jam_Keluar}`;
+                    const duration = status.Durasi_Menit;
+                    document.getElementById('workTime').textContent = `${Math.floor(duration / 60)} jam ${duration % 60} menit`;
+                    document.getElementById('workDuration').classList.remove('hidden');
+                    document.getElementById('clockInBtn').classList.add('hidden');
+                    document.getElementById('clockOutBtn').classList.add('hidden');
+                }
+            } else {
+                 // Belum absen
+                if (!data.currentShift || data.currentShift === "Hari Ini Libur") {
+                    document.getElementById('attendanceStatus').textContent = "Anda tidak ada jadwal hari ini.";
+                    document.getElementById('clockInBtn').disabled = true;
+                    document.getElementById('clockInBtn').classList.add('bg-gray-400');
+                    document.getElementById('clockInBtn').classList.remove('bg-green-600');
                 }
             }
-            showToast(`Clock ${type} berhasil!`);
-            cancelCamera();
-            renderEmployeeHome();
-            syncDataToSheet();
-        }
-
-        document.getElementById('leaveRequestForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            leaveRequests.push({ ID_Izin: Date.now(), ID_Karyawan: loggedInUser.id, Nama_Karyawan: loggedInUser.name, Jenis_Izin: document.getElementById('requestType').value, Tanggal: document.getElementById('requestDate').value, Alasan: document.getElementById('requestReason').value, Status: 'pending' });
-            this.reset();
-            renderEmployeeRequests();
-            syncDataToSheet();
-        });
-        
-        document.getElementById('scheduleForm').addEventListener('submit', function(e){
-            e.preventDefault();
-            const employeeId = parseInt(document.getElementById('scheduleEmployee').value);
-            const employeeName = employees.find(emp => emp.id === employeeId)?.name || '';
-            schedules.push({ ID_Jadwal: Date.now(), ID_Karyawan: employeeId, Nama_Karyawan: employeeName, Tanggal: document.getElementById('scheduleDate').value, Shift: document.getElementById('scheduleShift').value });
-            this.reset();
-            renderAdminSchedule();
-            syncDataToSheet();
-        });
-        
-        function deleteSchedule(id) { schedules = schedules.filter(s => s.ID_Jadwal !== id); renderAdminSchedule(); syncDataToSheet(); }
-        
-        function handleApproval(id, status) { 
-            const request = leaveRequests.find(r => r.ID_Izin === id); 
-            if(request) {
-                request.Status = status; 
+            
+            // Jadwal
+            const scheduleTable = document.getElementById('scheduleTable');
+            scheduleTable.innerHTML = '';
+            if(data.scheduleList.length > 0) {
+                data.scheduleList.forEach(item => {
+                    const statusClass = item.status === 'Sedang Berlangsung' ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-600';
+                    scheduleTable.innerHTML += `
+                        <tr class="border-b">
+                            <td class="p-3 font-medium">${item.hari}</td>
+                            <td class="p-3">${item.tanggal}</td>
+                            <td class="p-3"><span class="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">${item.shift}</span></td>
+                            <td class="p-3"><span class="${statusClass} px-2 py-1 rounded text-xs">${item.status}</span></td>
+                        </tr>
+                    `;
+                });
+            } else {
+                scheduleTable.innerHTML = '<tr><td colspan="4" class="text-center p-4 text-gray-500">Tidak ada jadwal ditemukan.</td></tr>';
             }
-            renderAdminApprovals(); 
-            syncDataToSheet(); 
-        }
-        
-        document.getElementById('announcementForm').addEventListener('submit', function(e){
-            e.preventDefault();
-            announcements.push({ ID_Pengumuman: Date.now(), Judul: document.getElementById('announcementTitle').value, Isi_Pengumuman: document.getElementById('announcementContent').value, Tanggal_Publikasi: new Date().toISOString() });
-            this.reset();
-            showToast('Pengumuman dipublikasikan.');
-            syncDataToSheet();
-        });
-        
-        function exportToCSV() {
-             if (attendanceRecords.length === 0) return showToast('Tidak ada data.');
-            let csv = "Nama,Masuk,Foto Masuk,Keluar,Foto Keluar,Total Jam\n";
-            attendanceRecords.forEach(r => {
-                let total = r.Waktu_Keluar ? ((new Date(r.Waktu_Keluar) - new Date(r.Waktu_Masuk)) / 3600000).toFixed(2) : 'N/A';
-                csv += `"${r.Nama_Karyawan}","${new Date(r.Waktu_Masuk).toLocaleString('id-ID')}","${r.Foto_Masuk || 'N/A'}","${r.Waktu_Keluar ? new Date(r.Waktu_Keluar).toLocaleString('id-ID') : 'N/A'}","${r.Foto_Keluar || 'N/A'}","${total}"\n`;
-            });
-            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement("a");
-            const url = URL.createObjectURL(blob);
-            link.setAttribute("href", url);
-            link.setAttribute("download", "laporan_absensi.csv");
-            link.style.visibility = 'hidden';
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
+            
+            // Pengumuman
+            if (data.managerMessage) {
+                document.getElementById('managerMessage').textContent = data.managerMessage;
+                document.getElementById('notificationBanner').classList.remove('hidden');
+            }
         }
 
-        document.addEventListener('DOMContentLoaded', () => {
+        // Update current time
+        function updateTime() {
+            const now = new Date();
+            const timeString = now.toLocaleTimeString('id-ID');
+            const dateString = now.toLocaleDateString('id-ID', { 
+                weekday: 'long', 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric' 
+            });
+            document.getElementById('currentTime').textContent = timeString;
+            document.getElementById('currentDate').textContent = dateString;
+        }
+
+        // Start camera
+        async function startCamera() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                currentStream = stream;
+                const video = document.getElementById('cameraPreview');
+                video.srcObject = stream;
+                document.getElementById('cameraPlaceholder').classList.add('hidden');
+                video.classList.remove('hidden');
+                document.getElementById('startCameraBtn').classList.add('hidden');
+                document.getElementById('takePhotoBtn').classList.remove('hidden');
+            } catch (error) {
+                showNotification('Tidak dapat mengakses kamera. Pastikan izin kamera telah diberikan.', 'error');
+            }
+        }
+
+        // Take photo
+        function takePhoto() {
+            const video = document.getElementById('cameraPreview');
+            const canvas = document.getElementById('photoCanvas');
+            const ctx = canvas.getContext('2d');
+            
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            ctx.drawImage(video, 0, 0);
+            
+            video.classList.add('hidden');
+            canvas.classList.remove('hidden');
+            
+            if (currentStream) {
+                currentStream.getTracks().forEach(track => track.stop());
+            }
+            
+            photoTaken = true;
+            document.getElementById('takePhotoBtn').textContent = 'Foto Ulang';
+            document.getElementById('takePhotoBtn').onclick = retakePhoto;
+        }
+
+        // Retake photo
+        function retakePhoto() {
+            document.getElementById('photoCanvas').classList.add('hidden');
+            document.getElementById('cameraPlaceholder').classList.remove('hidden');
+            document.getElementById('startCameraBtn').classList.remove('hidden');
+            document.getElementById('takePhotoBtn').classList.add('hidden');
+            document.getElementById('takePhotoBtn').textContent = 'Ambil Foto';
+            document.getElementById('takePhotoBtn').onclick = takePhoto;
+            photoTaken = false;
+        }
+
+        // Clock in
+        async function clockIn() {
+            if (!photoTaken) {
+                showNotification('Mohon ambil foto terlebih dahulu untuk absensi.', 'error');
+                return;
+            }
+            
+            showNotification('Mencatat absen masuk...', 'info');
+            
+            const canvas = document.getElementById('photoCanvas');
+            const photoData = canvas.toDataURL('image/jpeg'); // Ambil foto sebagai Base64
+            
+            try {
+                const response = await fetch(GAS_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'clockIn',
+                        employeeId: employeeId,
+                        photoBase64: photoData,
+                        shiftStartTime: employeeData.shiftStartTime
+                    })
+                });
+                
+                // Asumsikan berhasil karena 'no-cors'
+                const now = new Date();
+                clockInTime = now;
+                
+                document.getElementById('attendanceStatus').textContent = `Sudah absen masuk pada ${now.toLocaleTimeString('id-ID')}`;
+                document.getElementById('workDuration').classList.remove('hidden');
+                document.getElementById('clockInBtn').classList.add('hidden');
+                document.getElementById('clockOutBtn').classList.remove('hidden');
+                
+                showSuccessModal('Absensi Masuk Berhasil!', `Absen masuk berhasil dicatat pada ${now.toLocaleTimeString('id-ID')}`);
+                startWorkDurationTimer();
+                
+            } catch (error) {
+                showNotification(`Error: ${error.message}`, 'error');
+            }
+        }
+        
+        function startWorkDurationTimer() {
+            if (workDurationInterval) clearInterval(workDurationInterval);
+            
+            updateWorkDuration(); // Panggil sekali
+            workDurationInterval = setInterval(updateWorkDuration, 60000); // Update tiap menit
+        }
+
+        // Update work duration
+        function updateWorkDuration() {
+            if (!clockInTime) return;
+            
+            const now = new Date();
+            const diffMs = now - clockInTime;
+            const hours = Math.floor(diffMs / 3600000);
+            const minutes = Math.floor((diffMs % 3600000) / 60000);
+            
+            document.getElementById('workTime').textContent = `${hours} jam ${minutes} menit`;
+        }
+
+        // Show clock out modal
+        function showClockOutModal() {
+            const now = new Date();
+            let isEarlyLeave = false;
+            
+            if (employeeData.shiftEndTime) {
+                const [endHour, endMinute] = employeeData.shiftEndTime.split(':').map(Number);
+                if (now.getHours() < endHour || (now.getHours() === endHour && now.getMinutes() < endMinute)) {
+                    isEarlyLeave = true;
+                }
+            }
+            
+            document.getElementById('clockOutTime').textContent = now.toLocaleTimeString('id-ID');
+            
+            if (clockInTime) {
+                const diffMs = now - clockInTime;
+                const hours = Math.floor(diffMs / 3600000);
+                const minutes = Math.floor((diffMs % 3600000) / 60000);
+                document.getElementById('totalWorkTime').textContent = `${hours} jam ${minutes} menit`;
+            }
+            
+            const earlyLeaveWarning = document.getElementById('earlyLeaveWarning');
+            if (isEarlyLeave) {
+                earlyLeaveWarning.classList.remove('hidden');
+            } else {
+                earlyLeaveWarning.classList.add('hidden');
+            }
+            
+            document.getElementById('clockOutModal').classList.remove('hidden');
+        }
+
+        // Close clock out modal
+        function closeClockOutModal() {
+            document.getElementById('clockOutModal').classList.add('hidden');
+            document.getElementById('leaveReason').value = '';
+        }
+
+        // Confirm clock out
+        async function confirmClockOut() {
+            const now = new Date();
+            let isEarlyLeave = false;
+            let reason = null;
+
+             if (employeeData.shiftEndTime) {
+                const [endHour, endMinute] = employeeData.shiftEndTime.split(':').map(Number);
+                if (now.getHours() < endHour || (now.getHours() === endHour && now.getMinutes() < endMinute)) {
+                    isEarlyLeave = true;
+                }
+            }
+            
+            if (isEarlyLeave) {
+                reason = document.getElementById('leaveReason').value.trim();
+                if (!reason) {
+                    showNotification('Mohon berikan alasan untuk pulang lebih cepat.', 'error');
+                    return;
+                }
+            }
+            
+            showNotification('Mencatat absen keluar...', 'info');
+            
+            try {
+                 const response = await fetch(GAS_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'clockOut',
+                        employeeId: employeeId,
+                        reason: reason // Kirim alasan jika ada
+                    })
+                });
+
+                document.getElementById('attendanceStatus').textContent = `Sudah absen keluar pada ${now.toLocaleTimeString('id-ID')}`;
+                document.getElementById('clockOutBtn').classList.add('hidden');
+                if (workDurationInterval) clearInterval(workDurationInterval);
+                
+                closeClockOutModal();
+                showSuccessModal('Absensi Keluar Berhasil!', `Absen keluar berhasil dicatat pada ${now.toLocaleTimeString('id-ID')}`);
+                
+                if(reason) {
+                    showNotification('Permintaan pulang cepat telah dikirim ke manajer.', 'info');
+                }
+
+            } catch (error) {
+                 showNotification(`Error: ${error.message}`, 'error');
+            }
+        }
+
+        // --- Fungsi Modal dan Notifikasi (tidak berubah) ---
+        function showSuccessModal(title, message) {
+            document.getElementById('successTitle').textContent = title;
+            document.getElementById('successMessage').textContent = message;
+            document.getElementById('successModal').classList.remove('hidden');
+        }
+
+        function closeSuccessModal() {
+            document.getElementById('successModal').classList.add('hidden');
+        }
+
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.className = `fixed top-4 right-4 p-4 rounded-lg text-white z-50 notification-slide ${type === 'error' ? 'bg-red-500' : 'bg-blue-500'}`;
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            setTimeout(() => { notification.remove(); }, 3000);
+        }
+
+        function closeNotification() {
+            document.getElementById('notificationBanner').classList.add('hidden');
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
             updateTime();
             setInterval(updateTime, 1000);
-            loadInitialData();
+            loadEmployeeData(); // Muat data karyawan saat halaman dibuka
         });
     </script>
 </body>
 </html>
-
