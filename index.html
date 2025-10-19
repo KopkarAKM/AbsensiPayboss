@@ -139,7 +139,7 @@
             </main>
         </div>
 
-        <!-- Modals (Sama seperti sebelumnya) -->
+        <!-- Modals -->
         <div id="clockOutModal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center p-4 z-50">
             <div class="bg-white rounded-lg max-w-md w-full p-6">
                  <h3 class="text-lg font-bold text-gray-800 mb-4">Konfirmasi Absen Keluar</h3>
@@ -184,13 +184,8 @@
     </div>
 
     <script>
-        // =============================================
-        // URL WEB APP ANDA
-        // =============================================
         const GAS_URL = "https://script.google.com/macros/s/AKfycbzNtA8PdlbZQ_Jw_5JNLlDnhT-EYq-ylpmMrFIgedqGObtfcGVkpV50DSS4AGxrDjsE/exec";
-        // =============================================
 
-        // Elemen UI
         const selectionScreen = document.getElementById('employee-selection-screen');
         const attendanceScreen = document.getElementById('attendance-screen');
         const employeeListDiv = document.getElementById('employee-list');
@@ -202,15 +197,12 @@
         let employeeData = {};
         let workDurationInterval = null;
 
-        // --- FUNGSI BARU UNTUK KIOSK ---
-
-        // Memuat daftar karyawan saat halaman dibuka
         async function loadEmployeeList() {
             try {
                 const response = await fetch(`${GAS_URL}?action=getEmployeeList`);
                 const result = await response.json();
                 if (result.status === 'success' && result.data.length > 0) {
-                    employeeListDiv.innerHTML = ''; // Kosongkan
+                    employeeListDiv.innerHTML = ''; 
                     result.data.forEach(emp => {
                         const button = document.createElement('button');
                         button.className = "bg-blue-500 text-white font-bold py-4 px-2 rounded-lg hover:bg-blue-600 transition-colors shadow-md";
@@ -226,7 +218,6 @@
             }
         }
 
-        // Dipanggil saat karyawan memilih nama
         function selectEmployee(selectedId) {
             employeeId = selectedId;
             selectionScreen.classList.add('hidden');
@@ -235,9 +226,7 @@
             loadEmployeeData();
         }
 
-        // Kembali ke layar pilihan
         function goBackToSelection() {
-            // Reset state
             employeeId = null;
             employeeData = {};
             photoTaken = false;
@@ -250,32 +239,25 @@
                 workDurationInterval = null;
             }
 
-            // Reset UI
             resetAttendanceUI();
             
-            // Tukar layar
             attendanceScreen.classList.add('hidden');
             selectionScreen.classList.remove('hidden');
             document.getElementById('employeeName').textContent = "Silakan Pilih Nama Anda";
         }
         
         function resetAttendanceUI() {
-             // Reset Header
             document.getElementById('employeeName').textContent = 'Memuat...';
-
-            // Reset Shift Info
             document.getElementById('shiftInfoContainer').classList.add('hidden');
-
-            // Reset Kamera
             document.getElementById('cameraPreview').classList.add('hidden');
             document.getElementById('photoCanvas').classList.add('hidden');
             document.getElementById('cameraPlaceholder').classList.remove('hidden');
             document.getElementById('startCameraBtn').classList.remove('hidden');
-            document.getElementById('takePhotoBtn').classList.add('hidden');
-            document.getElementById('takePhotoBtn').textContent = 'Ambil Foto';
-            document.getElementById('takePhotoBtn').onclick = takePhoto;
+            const takePhotoBtn = document.getElementById('takePhotoBtn');
+            takePhotoBtn.classList.add('hidden');
+            takePhotoBtn.textContent = 'Ambil Foto';
+            takePhotoBtn.onclick = takePhoto;
             
-            // Reset Status & Tombol Absen
             document.getElementById('attendanceStatus').textContent = 'Belum absen masuk hari ini';
             document.getElementById('workDuration').classList.add('hidden');
             document.getElementById('workTime').textContent = '0 jam 0 menit';
@@ -286,13 +268,9 @@
             clockInBtn.classList.add('bg-green-600');
             document.getElementById('clockOutBtn').classList.add('hidden');
 
-            // Reset Jadwal
             document.getElementById('scheduleTable').innerHTML = '<tr><td colspan="4" class="text-center p-4 text-gray-500">Memuat jadwal...</td></tr>';
         }
 
-        // --- FUNGSI YANG DIMODIFIKASI ---
-
-        // Memuat data karyawan yang dipilih
         async function loadEmployeeData() {
             if (!employeeId) return;
             showNotification('Memuat data Anda...', 'info');
@@ -312,8 +290,6 @@
             }
         }
         
-        // --- FUNGSI LAMA (TETAP SAMA / SEDIKIT MODIFIKASI) ---
-
         function populateEmployeeData(data) {
             document.getElementById('employeeName').textContent = data.employeeName;
             if(data.currentShift && data.currentShift !== "Hari Ini Libur") {
@@ -323,10 +299,15 @@
                 document.getElementById('shiftInfo').textContent = "Hari Ini Libur";
                 document.getElementById('shiftInfoContainer').classList.remove('hidden');
             }
+
             if (data.attendanceStatus) {
                 const status = data.attendanceStatus;
-                const tglMasuk = status.Tanggal.split('T')[0];
-                clockInTime = new Date(`${tglMasuk} ${status.Jam_Masuk}`);
+                
+                // PERBAIKAN: Membuat objek Date dengan cara yang andal
+                const [day, month, year] = status.Tanggal.split('/').map(Number);
+                const [hour, minute] = status.Jam_Masuk.split(':').map(Number);
+                clockInTime = new Date(year, month - 1, day, hour, minute);
+
                 if (!status.Jam_Keluar) {
                     document.getElementById('attendanceStatus').textContent = `Sudah absen masuk pada ${status.Jam_Masuk}`;
                     document.getElementById('workDuration').classList.remove('hidden');
@@ -441,7 +422,7 @@
         }
 
         function updateWorkDuration() {
-            if (!clockInTime) return;
+            if (!clockInTime || isNaN(clockInTime)) return;
             const now = new Date();
             const diffMs = now - clockInTime;
             const hours = Math.floor(diffMs / 3600000);
@@ -502,7 +483,6 @@
 
         function closeSuccessModalAndReset() {
             document.getElementById('successModal').classList.add('hidden');
-            // Tambahkan jeda singkat agar transisi lebih mulus
             setTimeout(goBackToSelection, 300);
         }
 
@@ -514,7 +494,6 @@
             setTimeout(() => { notification.remove(); }, 3000);
         }
         
-        // Initialize
         document.addEventListener('DOMContentLoaded', function() {
             updateTime();
             setInterval(updateTime, 1000);
@@ -523,3 +502,4 @@
     </script>
 </body>
 </html>
+
