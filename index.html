@@ -11,7 +11,16 @@
         .card-shadow { box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
         .notification-slide { animation: slideDown 0.3s ease-out; }
         @keyframes slideDown { from { transform: translateY(-100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-        .camera-preview { border-radius: 15px; border: 3px solid #667eea; }
+        /* Mengatur ukuran kamera potret */
+        .camera-preview { 
+            border-radius: 15px; 
+            border: 3px solid #667eea;
+            width: 320px;  /* Lebar potret */
+            height: 480px; /* Tinggi potret */
+            margin-left: auto;
+            margin-right: auto;
+            object-fit: cover;
+        }
     </style>
 </head>
 <body class="min-h-full bg-gray-50">
@@ -75,9 +84,10 @@
                         <!-- Camera Section -->
                         <div class="space-y-4">
                             <div class="bg-gray-100 rounded-lg p-4 text-center">
-                                <video id="cameraPreview" class="camera-preview w-64 h-96 mx-auto bg-gray-300 hidden" autoplay></video>
-                                <canvas id="photoCanvas" class="camera-preview w-64 h-96 mx-auto bg-gray-300 hidden"></canvas>
-                                <div id="cameraPlaceholder" class="camera-preview w-64 h-96 mx-auto bg-gray-300 flex items-center justify-center">
+                                <!-- Ukuran potret diterapkan di sini -->
+                                <video id="cameraPreview" class="camera-preview bg-gray-300 hidden" autoplay></video>
+                                <canvas id="photoCanvas" class="camera-preview bg-gray-300 hidden"></canvas>
+                                <div id="cameraPlaceholder" class="camera-preview bg-gray-300 flex items-center justify-center">
                                     <div class="text-center text-gray-500">
                                         <span class="text-4xl block mb-2">📷</span>
                                         <p>Klik tombol untuk mengaktifkan kamera</p>
@@ -184,7 +194,8 @@
     </div>
 
     <script>
-        const GAS_URL = "https://script.google.com/macros/s/AKfycbzNtA8PdlbZQ_Jw_5JNLlDnhT-EYq-ylpmMrFIgedqGObtfcGVkpV50DSS4AGxrDjsE/exec";
+        // PASTE URL DEPLOYMENT BARU ANDA DI SINI
+        const GAS_URL = "https://script.google.com/macros/s/AKfycbxqA9ahEkjCNoJT7ZvpTqzB-seaiffrkjqCbyVlYg5Rfg6Ucf_gsm8LOBBZBwG5lYN7/exec";
 
         const selectionScreen = document.getElementById('employee-selection-screen');
         const attendanceScreen = document.getElementById('attendance-screen');
@@ -199,8 +210,12 @@
 
         async function loadEmployeeList() {
             try {
+                // Tampilkan loading
+                employeeListDiv.innerHTML = '<p class="col-span-full text-gray-500">Memuat daftar karyawan...</p>';
                 const response = await fetch(`${GAS_URL}?action=getEmployeeList`);
+                if (!response.ok) { throw new Error(`Network response error: ${response.statusText}`); }
                 const result = await response.json();
+                
                 if (result.status === 'success' && result.data.length > 0) {
                     employeeListDiv.innerHTML = ''; 
                     result.data.forEach(emp => {
@@ -210,11 +225,14 @@
                         button.onclick = () => selectEmployee(emp.id);
                         employeeListDiv.appendChild(button);
                     });
+                } else if (result.status === 'error') {
+                     throw new Error(result.message);
                 } else {
                     employeeListDiv.innerHTML = '<p class="col-span-full text-red-500">Gagal memuat daftar karyawan atau tidak ada data.</p>';
                 }
             } catch (error) {
-                employeeListDiv.innerHTML = `<p class="col-span-full text-red-500">Error: ${error.message}</p>`;
+                employeeListDiv.innerHTML = `<p class="col-span-full text-red-500">Error: ${error.message}. Pastikan URL GAS benar dan sudah di-deploy.</p>`;
+                showNotification(`Error: ${error.message}`, 'error');
             }
         }
 
@@ -244,6 +262,10 @@
             attendanceScreen.classList.add('hidden');
             selectionScreen.classList.remove('hidden');
             document.getElementById('employeeName').textContent = "Silakan Pilih Nama Anda";
+            // Muat ulang daftar karyawan jika terjadi error sebelumnya
+            if (employeeListDiv.innerHTML.includes('Error')) {
+                loadEmployeeList();
+            }
         }
         
         function resetAttendanceUI() {
@@ -276,7 +298,9 @@
             showNotification('Memuat data Anda...', 'info');
             try {
                 const response = await fetch(`${GAS_URL}?action=getEmployeeData&id=${employeeId}`);
+                if (!response.ok) { throw new Error(`Network response error: ${response.statusText}`); }
                 const result = await response.json();
+
                 if (result.status === 'success') {
                     employeeData = result.data;
                     populateEmployeeData(employeeData);
@@ -303,20 +327,31 @@
             if (data.attendanceStatus) {
                 const status = data.attendanceStatus;
                 
-                // PERBAIKAN: Membuat objek Date dengan cara yang andal
-                const [day, month, year] = status.Tanggal.split('/').map(Number);
-                const [hour, minute] = status.Jam_Masuk.split(':').map(Number);
-                clockInTime = new Date(year, month - 1, day, hour, minute);
+                try {
+                     // Check jika jam masuk valid
+                    if (status.Jam_Masuk && status.Jam_Masuk.includes(':')) {
+                        const [day, month, year] = status.Tanggal.split('/').map(Number);
+                        const [hour, minute] = status.Jam_Masuk.split(':').map(Number);
+                        clockInTime = new Date(year, month - 1, day, hour, minute);
+                    } else {
+                        throw new Error("Format Jam Masuk tidak valid");
+                    }
+                } catch (e) {
+                    console.error("Error parsing clockInTime:", e, status);
+                    showNotification("Gagal memproses waktu absen masuk.", "error");
+                    clockInTime = null; // Set null jika error
+                }
+
 
                 if (!status.Jam_Keluar) {
                     document.getElementById('attendanceStatus').textContent = `Sudah absen masuk pada ${status.Jam_Masuk}`;
                     document.getElementById('workDuration').classList.remove('hidden');
                     document.getElementById('clockInBtn').classList.add('hidden');
                     document.getElementById('clockOutBtn').classList.remove('hidden');
-                    startWorkDurationTimer();
+                    if(clockInTime) startWorkDurationTimer(); // Hanya jalankan jika clockInTime valid
                 } else {
                     document.getElementById('attendanceStatus').textContent = `Selesai bekerja. Absen keluar pada ${status.Jam_Keluar}`;
-                    const duration = status.Durasi_Menit;
+                    const duration = status.Durasi_Menit || 0;
                     document.getElementById('workTime').textContent = `${Math.floor(duration / 60)} jam ${duration % 60} menit`;
                     document.getElementById('workDuration').classList.remove('hidden');
                     document.getElementById('clockInBtn').classList.add('hidden');
@@ -329,11 +364,13 @@
                     clockInBtn.disabled = true;
                     clockInBtn.classList.add('bg-gray-400');
                     clockInBtn.classList.remove('bg-green-600');
+                } else {
+                     document.getElementById('attendanceStatus').textContent = "Belum absen masuk hari ini";
                 }
             }
             const scheduleTable = document.getElementById('scheduleTable');
             scheduleTable.innerHTML = '';
-            if(data.scheduleList.length > 0) {
+            if(data.scheduleList && data.scheduleList.length > 0) {
                 data.scheduleList.forEach(item => {
                     const statusClass = item.status === 'Sedang Berlangsung' ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-600';
                     scheduleTable.innerHTML += `<tr class="border-b"><td class="p-3 font-medium">${item.hari}</td><td class="p-3">${item.tanggal}</td><td class="p-3"><span class="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">${item.shift}</span></td><td class="p-3"><span class="${statusClass} px-2 py-1 rounded text-xs">${item.status}</span></td></tr>`;
@@ -348,32 +385,56 @@
             const currentDateEl = document.getElementById('currentDate');
             if (!currentTimeEl || !currentDateEl) return;
             const now = new Date();
-            currentTimeEl.textContent = now.toLocaleTimeString('id-ID');
+            currentTimeEl.textContent = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
             currentDateEl.textContent = now.toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
         }
 
         async function startCamera() {
+             const video = document.getElementById('cameraPreview');
+             const canvas = document.getElementById('photoCanvas');
+             // Set ukuran eksplisit untuk canvas agar sesuai
+             const previewBox = document.getElementById('cameraPlaceholder');
+             canvas.width = previewBox.offsetWidth;
+             canvas.height = previewBox.offsetHeight;
+
             try {
-                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                // Minta resolusi yang mendekati potret
+                const constraints = { 
+                    video: { 
+                        facingMode: "user",
+                        width: { ideal: 480 },
+                        height: { ideal: 640 }
+                    } 
+                };
+                const stream = await navigator.mediaDevices.getUserMedia(constraints);
                 currentStream = stream;
-                const video = document.getElementById('cameraPreview');
                 video.srcObject = stream;
                 document.getElementById('cameraPlaceholder').classList.add('hidden');
-                video.classList.remove('hidden');
+                canvas.classList.add('hidden'); // Sembunyikan canvas
+                video.classList.remove('hidden'); // Tampilkan video
                 document.getElementById('startCameraBtn').classList.add('hidden');
                 document.getElementById('takePhotoBtn').classList.remove('hidden');
-            } catch (error) { showNotification('Tidak dapat mengakses kamera. Pastikan izin kamera telah diberikan.', 'error'); }
+            } catch (error) { 
+                console.error("Error starting camera:", error);
+                showNotification('Tidak dapat mengakses kamera. Pastikan izin kamera telah diberikan.', 'error'); 
+            }
         }
 
         function takePhoto() {
             const video = document.getElementById('cameraPreview');
             const canvas = document.getElementById('photoCanvas');
             const ctx = canvas.getContext('2d');
+            
+            // Set ukuran canvas agar sesuai dengan video feed
             canvas.width = video.videoWidth;
             canvas.height = video.videoHeight;
-            ctx.drawImage(video, 0, 0);
-            video.classList.add('hidden');
-            canvas.classList.remove('hidden');
+            
+            // Gambar frame video ke canvas
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            
+            video.classList.add('hidden'); // Sembunyikan video
+            canvas.classList.remove('hidden'); // Tampilkan canvas (foto)
+            
             if (currentStream) { currentStream.getTracks().forEach(track => track.stop()); }
             photoTaken = true;
             const takePhotoBtn = document.getElementById('takePhotoBtn');
@@ -383,53 +444,66 @@
 
         function retakePhoto() {
             document.getElementById('photoCanvas').classList.add('hidden');
-            document.getElementById('cameraPlaceholder').classList.remove('hidden');
+            document.getElementById('cameraPlaceholder').classList.add('hidden'); // placeholder tetap hidden
             const startCameraBtn = document.getElementById('startCameraBtn');
-            startCameraBtn.classList.remove('hidden');
+            startCameraBtn.classList.add('hidden'); // tombol start tetap hidden
             const takePhotoBtn = document.getElementById('takePhotoBtn');
-            takePhotoBtn.classList.add('hidden');
+            takePhotoBtn.classList.add('hidden'); // Sembunyikan tombol foto
+            
+            photoTaken = false;
+            
+            // Langsung restart kamera
+            startCamera();
+            
+            // Ubah tombol kembali
             takePhotoBtn.textContent = 'Ambil Foto';
             takePhotoBtn.onclick = takePhoto;
-            photoTaken = false;
         }
+
 
         async function clockIn() {
             if (!photoTaken) { return showNotification('Mohon ambil foto terlebih dahulu untuk absensi.', 'error'); }
             showNotification('Mencatat absen masuk...', 'info');
+            
+            // Disable tombol
+            const clockInBtn = document.getElementById('clockInBtn');
+            clockInBtn.disabled = true;
+            clockInBtn.textContent = "Mengirim...";
+            
             const canvas = document.getElementById('photoCanvas');
-            const photoData = canvas.toDataURL('image/jpeg');
+            const photoData = canvas.toDataURL('image/jpeg', 0.8); // Kompresi foto
+            
             try {
                 const response = await fetch(GAS_URL, {
                     method: 'POST',
-                    // mode: 'no-cors', // <-- INI DIHAPUS
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ action: 'clockIn', employeeId: employeeId, photoBase64: photoData, shiftStartTime: employeeData.shiftStartTime })
                 });
 
-                // TAMBAHAN: Cek respons dari server
                 if (!response.ok) {
-                    throw new Error(`Server error: ${response.status}`);
+                    throw new Error(`Server error: ${response.statusText}`);
                 }
 
-                const result = await response.json(); // TAMBAHAN: Baca respons JSON
+                const result = await response.json(); 
 
                 if (result.status === 'success') {
-                    // Logika sukses (sudah ada)
                     const now = new Date();
                     clockInTime = now;
-                    document.getElementById('attendanceStatus').textContent = `Sudah absen masuk pada ${now.toLocaleTimeString('id-ID')}`;
+                    document.getElementById('attendanceStatus').textContent = `Sudah absen masuk pada ${now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}`;
                     document.getElementById('workDuration').classList.remove('hidden');
                     document.getElementById('clockInBtn').classList.add('hidden');
                     document.getElementById('clockOutBtn').classList.remove('hidden');
-                    showSuccessModal('Absensi Masuk Berhasil!', `Absen masuk berhasil dicatat pada ${now.toLocaleTimeString('id-ID')}`);
+                    showSuccessModal('Absensi Masuk Berhasil!', `Absen masuk berhasil dicatat pada ${now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}`);
                     startWorkDurationTimer();
                 } else {
-                    // TAMBAHAN: Tampilkan error jika server merespons 'error'
                     throw new Error(result.message || 'Gagal mencatat absensi');
                 }
 
             } catch (error) { 
                 showNotification(`Error: ${error.message}`, 'error'); 
+                // Kembalikan tombol ke state normal jika error
+                clockInBtn.disabled = false;
+                clockInBtn.textContent = "🕐 Absen Masuk";
             }
         }
         
@@ -440,7 +514,7 @@
         }
 
         function updateWorkDuration() {
-            if (!clockInTime || isNaN(clockInTime)) return;
+            if (!clockInTime || isNaN(clockInTime.getTime())) return; // Cek validitas Date
             const now = new Date();
             const diffMs = now - clockInTime;
             const hours = Math.floor(diffMs / 3600000);
@@ -452,18 +526,25 @@
             const now = new Date();
             let isEarlyLeave = false;
             if (employeeData.shiftEndTime) {
-                const [endHour, endMinute] = employeeData.shiftEndTime.split(':').map(Number);
-                if (now.getHours() < endHour || (now.getHours() === endHour && now.getMinutes() < endMinute)) {
-                    isEarlyLeave = true;
-                }
+                try {
+                    const [endHour, endMinute] = employeeData.shiftEndTime.split(':').map(Number);
+                    if (now.getHours() < endHour || (now.getHours() === endHour && now.getMinutes() < endMinute)) {
+                        isEarlyLeave = true;
+                    }
+                } catch(e) { console.error("Error parsing shiftEndTime:", e, employeeData.shiftEndTime); }
             }
-            document.getElementById('clockOutTime').textContent = now.toLocaleTimeString('id-ID');
-            if (clockInTime) {
+            
+            document.getElementById('clockOutTime').textContent = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+            
+            if (clockInTime && !isNaN(clockInTime.getTime())) {
                 const diffMs = now - clockInTime;
                 const hours = Math.floor(diffMs / 3600000);
                 const minutes = Math.floor((diffMs % 3600000) / 60000);
                 document.getElementById('totalWorkTime').textContent = `${hours} jam ${minutes} menit`;
+            } else {
+                 document.getElementById('totalWorkTime').textContent = "Data tidak tersedia";
             }
+            
             document.getElementById('earlyLeaveWarning').classList.toggle('hidden', !isEarlyLeave);
             document.getElementById('clockOutModal').classList.remove('hidden');
         }
@@ -478,37 +559,44 @@
             let isEarlyLeave = !document.getElementById('earlyLeaveWarning').classList.contains('hidden');
             let reason = isEarlyLeave ? document.getElementById('leaveReason').value.trim() : null;
             if (isEarlyLeave && !reason) { return showNotification('Mohon berikan alasan untuk pulang lebih cepat.', 'error'); }
+            
             showNotification('Mencatat absen keluar...', 'info');
+            
+            // Disable tombol
+            const confirmBtn = event.target;
+            confirmBtn.disabled = true;
+            confirmBtn.textContent = "Mengirim...";
+            
             try {
                 const response = await fetch(GAS_URL, {
                     method: 'POST', 
-                    // mode: 'no-cors', // <-- INI DIHAPUS
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ action: 'clockOut', employeeId: employeeId, reason: reason })
                 });
 
-                // TAMBAHAN: Cek respons dari server
                 if (!response.ok) {
-                    throw new Error(`Server error: ${response.status}`);
+                    throw new Error(`Server error: ${response.statusText}`);
                 }
 
-                const result = await response.json(); // TAMBAHAN: Baca respons JSON
+                const result = await response.json(); 
 
                 if (result.status === 'success') {
-                    // Logika sukses (sudah ada)
-                    document.getElementById('attendanceStatus').textContent = `Sudah absen keluar pada ${now.toLocaleTimeString('id-ID')}`;
+                    document.getElementById('attendanceStatus').textContent = `Sudah absen keluar pada ${now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}`;
                     document.getElementById('clockOutBtn').classList.add('hidden');
                     if (workDurationInterval) clearInterval(workDurationInterval);
                     closeClockOutModal();
-                    showSuccessModal('Absensi Keluar Berhasil!', `Absen keluar berhasil dicatat pada ${now.toLocaleTimeString('id-ID')}`);
+                    showSuccessModal('Absensi Keluar Berhasil!', `Absen keluar berhasil dicatat pada ${now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}`);
                     if(reason) { showNotification('Permintaan pulang cepat telah dikirim ke manajer.', 'info'); }
                 } else {
-                    // TAMBAHAN: Tampilkan error jika server merespons 'error'
                     throw new Error(result.message || 'Gagal mencatat absensi keluar');
                 }
 
             } catch (error) { 
                 showNotification(`Error: ${error.message}`, 'error'); 
+            } finally {
+                // Kembalikan tombol ke state normal
+                confirmBtn.disabled = false;
+                confirmBtn.textContent = "Konfirmasi Keluar";
             }
         }
 
@@ -531,7 +619,7 @@
             }
             
             const notification = document.createElement('div');
-            let bgColor = 'bg-green-500'; // default info
+            let bgColor = 'bg-green-500'; // default success
             if (type === 'error') {
                 bgColor = 'bg-red-500';
             } else if (type === 'info') {
@@ -543,7 +631,7 @@
             document.body.appendChild(notification);
             
             setTimeout(() => { 
-                if (notification) {
+                if (document.body.contains(notification)) {
                     notification.remove(); 
                 }
             }, 3000);
