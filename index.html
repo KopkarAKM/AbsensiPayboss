@@ -75,9 +75,9 @@
                         <!-- Camera Section -->
                         <div class="space-y-4">
                             <div class="bg-gray-100 rounded-lg p-4 text-center">
-                                <video id="cameraPreview" class="camera-preview w-full h-48 bg-gray-300 hidden" autoplay></video>
-                                <canvas id="photoCanvas" class="camera-preview w-full h-48 bg-gray-300 hidden"></canvas>
-                                <div id="cameraPlaceholder" class="camera-preview w-full h-48 bg-gray-300 flex items-center justify-center">
+                                <video id="cameraPreview" class="camera-preview w-64 h-96 mx-auto bg-gray-300 hidden" autoplay></video>
+                                <canvas id="photoCanvas" class="camera-preview w-64 h-96 mx-auto bg-gray-300 hidden"></canvas>
+                                <div id="cameraPlaceholder" class="camera-preview w-64 h-96 mx-auto bg-gray-300 flex items-center justify-center">
                                     <div class="text-center text-gray-500">
                                         <span class="text-4xl block mb-2">📷</span>
                                         <p>Klik tombol untuk mengaktifkan kamera</p>
@@ -401,18 +401,36 @@
             try {
                 const response = await fetch(GAS_URL, {
                     method: 'POST',
-                    mode: 'no-cors', headers: { 'Content-Type': 'application/json' },
+                    // mode: 'no-cors', // <-- INI DIHAPUS
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ action: 'clockIn', employeeId: employeeId, photoBase64: photoData, shiftStartTime: employeeData.shiftStartTime })
                 });
-                const now = new Date();
-                clockInTime = now;
-                document.getElementById('attendanceStatus').textContent = `Sudah absen masuk pada ${now.toLocaleTimeString('id-ID')}`;
-                document.getElementById('workDuration').classList.remove('hidden');
-                document.getElementById('clockInBtn').classList.add('hidden');
-                document.getElementById('clockOutBtn').classList.remove('hidden');
-                showSuccessModal('Absensi Masuk Berhasil!', `Absen masuk berhasil dicatat pada ${now.toLocaleTimeString('id-ID')}`);
-                startWorkDurationTimer();
-            } catch (error) { showNotification(`Error: ${error.message}`, 'error'); }
+
+                // TAMBAHAN: Cek respons dari server
+                if (!response.ok) {
+                    throw new Error(`Server error: ${response.status}`);
+                }
+
+                const result = await response.json(); // TAMBAHAN: Baca respons JSON
+
+                if (result.status === 'success') {
+                    // Logika sukses (sudah ada)
+                    const now = new Date();
+                    clockInTime = now;
+                    document.getElementById('attendanceStatus').textContent = `Sudah absen masuk pada ${now.toLocaleTimeString('id-ID')}`;
+                    document.getElementById('workDuration').classList.remove('hidden');
+                    document.getElementById('clockInBtn').classList.add('hidden');
+                    document.getElementById('clockOutBtn').classList.remove('hidden');
+                    showSuccessModal('Absensi Masuk Berhasil!', `Absen masuk berhasil dicatat pada ${now.toLocaleTimeString('id-ID')}`);
+                    startWorkDurationTimer();
+                } else {
+                    // TAMBAHAN: Tampilkan error jika server merespons 'error'
+                    throw new Error(result.message || 'Gagal mencatat absensi');
+                }
+
+            } catch (error) { 
+                showNotification(`Error: ${error.message}`, 'error'); 
+            }
         }
         
         function startWorkDurationTimer() {
@@ -463,16 +481,35 @@
             showNotification('Mencatat absen keluar...', 'info');
             try {
                 const response = await fetch(GAS_URL, {
-                    method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' },
+                    method: 'POST', 
+                    // mode: 'no-cors', // <-- INI DIHAPUS
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ action: 'clockOut', employeeId: employeeId, reason: reason })
                 });
-                document.getElementById('attendanceStatus').textContent = `Sudah absen keluar pada ${now.toLocaleTimeString('id-ID')}`;
-                document.getElementById('clockOutBtn').classList.add('hidden');
-                if (workDurationInterval) clearInterval(workDurationInterval);
-                closeClockOutModal();
-                showSuccessModal('Absensi Keluar Berhasil!', `Absen keluar berhasil dicatat pada ${now.toLocaleTimeString('id-ID')}`);
-                if(reason) { showNotification('Permintaan pulang cepat telah dikirim ke manajer.', 'info'); }
-            } catch (error) { showNotification(`Error: ${error.message}`, 'error'); }
+
+                // TAMBAHAN: Cek respons dari server
+                if (!response.ok) {
+                    throw new Error(`Server error: ${response.status}`);
+                }
+
+                const result = await response.json(); // TAMBAHAN: Baca respons JSON
+
+                if (result.status === 'success') {
+                    // Logika sukses (sudah ada)
+                    document.getElementById('attendanceStatus').textContent = `Sudah absen keluar pada ${now.toLocaleTimeString('id-ID')}`;
+                    document.getElementById('clockOutBtn').classList.add('hidden');
+                    if (workDurationInterval) clearInterval(workDurationInterval);
+                    closeClockOutModal();
+                    showSuccessModal('Absensi Keluar Berhasil!', `Absen keluar berhasil dicatat pada ${now.toLocaleTimeString('id-ID')}`);
+                    if(reason) { showNotification('Permintaan pulang cepat telah dikirim ke manajer.', 'info'); }
+                } else {
+                    // TAMBAHAN: Tampilkan error jika server merespons 'error'
+                    throw new Error(result.message || 'Gagal mencatat absensi keluar');
+                }
+
+            } catch (error) { 
+                showNotification(`Error: ${error.message}`, 'error'); 
+            }
         }
 
         function showSuccessModal(title, message) {
@@ -487,11 +524,29 @@
         }
 
         function showNotification(message, type = 'info') {
+            // Hapus notifikasi lama jika ada
+            const oldNotification = document.querySelector('.notification-slide');
+            if (oldNotification) {
+                oldNotification.remove();
+            }
+            
             const notification = document.createElement('div');
-            notification.className = `fixed top-4 right-4 p-4 rounded-lg text-white z-50 notification-slide ${type === 'error' ? 'bg-red-500' : 'bg-green-500'}`;
+            let bgColor = 'bg-green-500'; // default info
+            if (type === 'error') {
+                bgColor = 'bg-red-500';
+            } else if (type === 'info') {
+                bgColor = 'bg-blue-500';
+            }
+            
+            notification.className = `fixed top-4 right-4 p-4 rounded-lg text-white z-50 notification-slide ${bgColor}`;
             notification.textContent = message;
             document.body.appendChild(notification);
-            setTimeout(() => { notification.remove(); }, 3000);
+            
+            setTimeout(() => { 
+                if (notification) {
+                    notification.remove(); 
+                }
+            }, 3000);
         }
         
         document.addEventListener('DOMContentLoaded', function() {
@@ -502,4 +557,3 @@
     </script>
 </body>
 </html>
-
