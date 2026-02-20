@@ -1,834 +1,647 @@
 <!DOCTYPE html>
-<html lang="id" class="h-full">
+<html lang="id">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ramadhan Tracker Kopkar AKM</title>
-    
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <title>PayBoss Cafe - Absensi Karyawan</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-
     <style>
-        * { font-family: 'Poppins', sans-serif; }
-        .arabic-font { font-family: 'Amiri', serif; }
-        body { -webkit-tap-highlight-color: transparent; }
-
-        .islamic-pattern {
-            background-color: #f8fafc;
-            background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%230ea5e9' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
-        }
-
-        .mosque-bg {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            height: 150px;
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 320'%3E%3Cpath fill='%230ea5e9' fill-opacity='0.05' d='M0,224L48,213.3C96,203,192,181,288,181.3C384,181,480,203,576,224C672,245,768,267,864,261.3C960,256,1056,224,1152,208C1248,192,1344,192,1392,192L1440,192L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z'%3E%3C/path%3E%3C/svg%3E");
-            background-repeat: no-repeat;
-            background-position: bottom;
-            background-size: cover;
-            pointer-events: none;
-            z-index: 0;
-        }
-
-        .card-modern {
-            background: rgba(255, 255, 255, 0.95);
-            border: 1px solid rgba(14, 165, 233, 0.1);
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .card-highlight {
-            background: linear-gradient(135deg, #06b6d4 0%, #14b8a6 100%);
-            color: white;
-            box-shadow: 0 10px 20px -5px rgba(6,182,212,0.4);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .card-highlight::before {
-            content: "";
-            position: absolute;
-            inset: 0;
-            background-image: url("data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 20 20' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1h2v2H1V1zm4 0h2v2H5V1zm4 0h2v2H9V1z' fill='%23ffffff' fill-opacity='0.1'/%3E%3C/svg%3E");
-        }
-        
-        .btn-primary {
-            background: linear-gradient(135deg, #0ea5e9 0%, #06b6d4 100%);
-            color: white;
-            transition: all 0.3s ease;
-        }
-        
-        @keyframes slideUp {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        
-        .slide-up {
-            animation: slideUp 0.6s ease-out forwards;
-        }
-        
-        .nav-modern {
-            background: rgba(255,255,255,0.95);
-            backdrop-filter: blur(10px);
-            border-top: 1px solid rgba(0,0,0,0.05);
-            box-shadow: 0 -4px 20px rgba(0,0,0,0.03);
-        }
-        
-        .nav-item-modern.active {
-            color: #0ea5e9;
-            font-weight: 600;
-        }
-        
-        .nav-item-modern.active .icon-container {
-            background-color: #e0f2fe;
-            color: #0284c7;
-        }
-        
-        input[type="checkbox"] {
-            -webkit-appearance: none;
-            appearance: none;
-            width: 24px;
-            height: 24px;
-            border: 2px solid #0ea5e9;
-            border-radius: 6px;
-            background: white;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            flex-shrink: 0;
-            display: grid;
-            place-content: center;
-        }
-        
-        input[type="checkbox"]:checked {
-            background: linear-gradient(135deg, #0ea5e9, #06b6d4);
-            border-color: #0ea5e9;
-        }
-        
-        input[type="checkbox"]:checked::after {
-            content: '✓';
-            color: white;
-            font-weight: bold;
-            font-size: 14px;
-        }
-        
-        .note-badge {
-            background: #f0f9ff;
-            border-left: 3px solid #0ea5e9;
-            padding: 8px 12px;
-            border-radius: 8px;
-            font-size: 12px;
-            color: #0369a1;
-            margin-top: 8px;
-        }
-        
-        .no-scrollbar::-webkit-scrollbar {
-            display: none;
-        }
-        .no-scrollbar {
-            -ms-overflow-style: none;
-            scrollbar-width: none;
-        }
-
-        .ornament-divider {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 1.5rem 0;
-            color: #cbd5e1;
-        }
-        .ornament-divider::before, .ornament-divider::after {
-            content: "";
-            height: 1px;
-            background-color: #cbd5e1;
-            flex: 1;
-            margin: 0 10px;
-        }
-        .ornament-divider span {
-            font-size: 18px;
-            color: #0ea5e9;
-        }
-
-        .header-curve {
-            position: absolute;
-            bottom: -1px;
-            left: 0;
-            width: 100%;
-            overflow: hidden;
-            line-height: 0;
-            transform: rotate(180deg);
-        }
-        .header-curve svg {
-            position: relative;
-            display: block;
-            width: calc(100% + 1.3px);
-            height: 20px;
-            fill: #f8fafc;
+        body { box-sizing: border-box; }
+        .gradient-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .card-shadow { box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+        .notification-slide { animation: slideDown 0.3s ease-out; }
+        @keyframes slideDown { from { transform: translateY(-100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        /* Mengatur ukuran kamera potret */
+        .camera-preview { 
+            border-radius: 15px; 
+            border: 3px solid #667eea;
+            width: 320px;  /* Lebar potret */
+            height: 480px; /* Tinggi potret */
+            margin-left: auto;
+            margin-right: auto;
+            object-fit: cover;
         }
     </style>
 </head>
-<body class="h-full bg-slate-50 text-gray-800 overflow-hidden islamic-pattern">
-    <div class="mosque-bg"></div>
-    <div id="root" class="h-full relative z-10"></div>
-
-    <script type="text/babel">
-        const { useState, useEffect } = React;
-
-        const TOTAL_DAYS = 30;
-
-        const tabalong_schedule = [
-            { imsak: "05:01", berbuka: "18:40" },
-            { imsak: "05:01", berbuka: "18:40" },
-            { imsak: "05:01", berbuka: "18:40" },
-            { imsak: "05:01", berbuka: "18:40" },
-            { imsak: "05:01", berbuka: "18:40" },
-            { imsak: "05:01", berbuka: "18:39" },
-            { imsak: "05:01", berbuka: "18:39" },
-            { imsak: "05:01", berbuka: "18:39" },
-            { imsak: "05:01", berbuka: "18:39" },
-            { imsak: "05:01", berbuka: "18:38" },
-            { imsak: "05:01", berbuka: "18:38" },
-            { imsak: "05:01", berbuka: "18:38" },
-            { imsak: "05:01", berbuka: "18:38" },
-            { imsak: "05:01", berbuka: "18:37" },
-            { imsak: "05:01", berbuka: "18:37" },
-            { imsak: "05:01", berbuka: "18:37" },
-            { imsak: "05:01", berbuka: "18:37" },
-            { imsak: "05:00", berbuka: "18:36" },
-            { imsak: "05:00", berbuka: "18:36" },
-            { imsak: "05:00", berbuka: "18:36" },
-            { imsak: "05:00", berbuka: "18:35" },
-            { imsak: "05:00", berbuka: "18:35" },
-            { imsak: "05:00", berbuka: "18:35" },
-            { imsak: "04:59", berbuka: "18:34" },
-            { imsak: "04:59", berbuka: "18:34" },
-            { imsak: "04:59", berbuka: "18:34" },
-            { imsak: "04:59", berbuka: "18:33" },
-            { imsak: "04:59", berbuka: "18:33" },
-            { imsak: "04:58", berbuka: "18:33" },
-            { imsak: "04:58", berbuka: "18:33" } 
-        ];
-
-        const checklistConfig = [
-            { id: 'sahur', label: 'Sahur', icon: '🍽️', desc: 'Makan sahur sebelum imsak', hasNote: true },
-            { id: 'puasa_wajib', label: 'Puasa Wajib', icon: '🌙', desc: 'Menjalankan puasa Ramadhan', hasNote: false },
-            { id: 'tarawih', label: 'Shalat Tarawih', icon: '🕌', desc: 'Shalat tarawih berjamaah', hasNote: true },
-            { id: 'tadarus', label: 'Tadarus Al-Quran', icon: '📖', desc: 'Membaca Al-Quran', hasNote: true, quranNote: true },
-            { id: 'itikaf', label: 'Beritikaf', icon: '🤲', desc: 'Berdiam di masjid', hasNote: true },
-            { id: 'sedekah', label: 'Sedekah', icon: '💝', desc: 'Berbagi dengan sesama', hasNote: true },
-            { id: 'takjil', label: 'Berbagi Takjil', icon: '🥤', desc: 'Membagikan takjil berbuka', hasNote: true }
-        ];
-
-        const achievementsList = [
-            { id: 'pemula', icon: '🌟', label: 'Pemula', desc: '7 hari puasa', target: 7, type: 'puasa_wajib' },
-            { id: 'konsisten', icon: '⭐', label: 'Konsisten', desc: '15 hari puasa', target: 15, type: 'puasa_wajib' },
-            { id: 'juara', icon: '👑', label: 'Juara', desc: '30 hari puasa', target: 30, type: 'puasa_wajib' },
-            { id: 'penghafal', icon: '📖', label: 'Penghafal', desc: 'Tadarus 20 hari', target: 20, type: 'tadarus' },
-            { id: 'dermawan', icon: '💎', label: 'Dermawan', desc: 'Sedekah 15 hari', target: 15, type: 'sedekah' },
-            { id: 'mulia', icon: '🥤', label: 'Mulia', desc: 'Takjil 10 hari', target: 10, type: 'takjil' }
-        ];
-
-        const prayersData = [
-            {
-                title: "Niat Puasa (Malam Hari)",
-                arabic: "نَوَيْتُ صَوْمَ غَدٍ عَنْ أَدَاءِ فَرْضِ شَهْرِ رَمَضَانَ هَذِهِ السَّنَةِ لِلّٰهِ تَعَالَى",
-                latin: "Nawaitu shauma ghadin 'an adaa'i fardhi syahri ramadhaana haadzihis sanati lillaahi ta'aala.",
-                translation: "Aku berniat puasa esok hari untuk menunaikan fardhu di bulan Ramadhan tahun ini, karena Allah Ta'ala."
-            },
-            {
-                title: "Doa Berbuka Puasa",
-                arabic: "ذَهَبَ الظَّمَأُ وَابْتَلَّتِ الْعُرُوقُ، وَثَبَتَ الْأَجْرُ إِنْ شَاءَ اللَّهُ",
-                latin: "Dzahabaz zhama'u wabtallatil 'uruuqu wa tsabatal ajru insyaa Allah.",
-                translation: "Telah hilang rasa haus, dan urat-urat telah basah, serta pahala telah tetap, insya Allah."
-            },
-            {
-                title: "Doa Lailatul Qadar",
-                arabic: "اللَّهُمَّ إِنَّكَ عَفُوٌّ تُحِبُّ الْعَفْوَ فَاعْفُ عَنِّي",
-                latin: "Allahumma innaka 'afuwwun tuhibbul 'afwa fa'fu 'anni.",
-                translation: "Ya Allah, sesungguhnya Engkau Maha Pemaaf, Engkau menyukai permintaan maaf, maka maafkanlah aku."
-            }
-        ];
-
-        // Format waktu lokal untuk mencegah bug zona waktu (UTC)
-        const getLocalYYYYMMDD = (d) => {
-            const year = d.getFullYear();
-            const month = String(d.getMonth() + 1).padStart(2, '0');
-            const day = String(d.getDate()).padStart(2, '0');
-            return `${year}-${month}-${day}`;
-        };
-        
-        const calculateRamadhanDay = (currentDate) => {
-            const today = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate());
-            const start = new Date(2026, 1, 19); // 19 Februari 2026
-            const diffTime = today - start;
-            const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
-            
-            if (diffDays < 1) return 1;
-            if (diffDays > TOTAL_DAYS) return TOTAL_DAYS;
-            return diffDays;
-        };
-
-        const formatCountdown = (targetTime, currentTime) => {
-            if (!targetTime) return "--:--:--";
-            const [hours, minutes] = targetTime.split(':').map(Number);
-            const target = new Date(currentTime);
-            target.setHours(hours, minutes, 0, 0);
-            
-            if (target < currentTime) target.setDate(target.getDate() + 1);
-            
-            const diff = target - currentTime;
-            if (diff < 0) return "00:00:00";
-
-            const h = Math.floor(diff / (1000 * 60 * 60));
-            const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-            const s = Math.floor((diff % (1000 * 60)) / 1000);
-            
-            const pad = (n) => n.toString().padStart(2, '0');
-            return `${pad(h)}:${pad(m)}:${pad(s)}`;
-        };
-
-        const formatRupiah = (number) => {
-            return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(number);
-        };
-
-        const Toast = ({ message, type, onClose }) => {
-            useEffect(() => {
-                const timer = setTimeout(onClose, 3000);
-                return () => clearTimeout(timer);
-            }, [onClose]);
-            const bgClass = type === 'success' ? 'bg-green-500' : type === 'warning' ? 'bg-orange-500' : 'bg-blue-500';
-            return <div className={`toast fixed top-4 right-4 z-50 px-4 py-3 rounded-xl shadow-lg text-white text-sm font-medium ${bgClass}`}>{message}</div>;
-        };
-
-        const Modal = ({ isOpen, onClose, title, children, actions }) => {
-            if (!isOpen) return null;
-            return (
-                <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={onClose}>
-                    <div className="card-modern rounded-2xl p-6 w-full max-w-sm shadow-2xl" onClick={e => e.stopPropagation()}>
-                        <h3 className="text-lg font-bold text-blue-600 mb-4 text-center border-b pb-2">{title}</h3>
-                        <div className="max-h-[70vh] overflow-y-auto no-scrollbar pt-2">{children}</div>
-                        <div className="flex gap-3 mt-6 pt-2 border-t">{actions}</div>
+<body class="min-h-full bg-gray-50">
+    <div class="min-h-full">
+        <!-- Header -->
+        <header class="gradient-bg text-white p-4">
+            <div class="max-w-4xl mx-auto flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <div class="bg-white p-2 rounded-full"><span class="text-2xl">☕</span></div>
+                    <div>
+                        <h1 class="text-xl font-bold">PayBoss Cafe</h1>
+                        <p class="text-sm opacity-90">Sistem Absensi Karyawan</p>
                     </div>
                 </div>
-            );
-        };
+                <div class="text-right">
+                    <p class="text-sm opacity-90" id="header-greeting">Selamat datang,</p>
+                    <p class="font-semibold" id="employeeName">Silakan Pilih Nama Anda</p>
+                </div>
+            </div>
+        </header>
 
-        const App = () => {
-            const [activeTab, setActiveTab] = useState('today');
-            const [currentTime, setCurrentTime] = useState(new Date());
-            const [data, setData] = useState({}); 
-            const [toast, setToast] = useState(null);
+        <!-- Layar Pilihan Karyawan (Visible by default) -->
+        <div id="employee-selection-screen" class="max-w-4xl mx-auto p-4">
+            <div class="bg-white rounded-lg card-shadow p-6 text-center">
+                <h2 class="text-2xl font-bold text-gray-800 mb-2">Pilih Nama Anda untuk Absen</h2>
+                <p class="text-gray-600 mb-6">Tablet ini digunakan untuk absensi bersama.</p>
+                <div id="employee-list" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    <!-- Daftar Karyawan akan dimuat di sini -->
+                    <p class="col-span-full text-gray-500">Memuat daftar karyawan...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Layar Absensi (Hidden by default) -->
+        <div id="attendance-screen" class="hidden">
+            <!-- Tombol Kembali -->
+            <div class="max-w-4xl mx-auto p-4 -mb-2">
+                <button onclick="goBackToSelection()" class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors text-sm">
+                    &larr; Ganti Pengguna
+                </button>
+            </div>
             
-            const [isAlarmModalOpen, setAlarmModalOpen] = useState(false);
-            const [alarmType, setAlarmType] = useState(null); 
-            const [alarms, setAlarms] = useState({ imsak: null, berbuka: null });
-            
-            const [isNoteModalOpen, setNoteModalOpen] = useState(false);
-            const [currentNoteItem, setCurrentNoteItem] = useState(null);
-            const [noteForm, setNoteForm] = useState({ text: '', surahDari: '', ayatDari: '', surahKe: '', ayatKe: '' });
-            const [isPrayerModalOpen, setPrayerModalOpen] = useState(false);
-
-            const [zakatType, setZakatType] = useState('fitrah');
-            const [zakatResult, setZakatResult] = useState(0);
-            const [zakatForm, setZakatForm] = useState({ people: 1, price: 45000, assets: 0, days: 1 });
-            
-            const [khatamTarget, setKhatamTarget] = useState(1);
-            const [tilawahResult, setTilawahResult] = useState({ perDay: 0, perPrayer: 0 });
-
-            useEffect(() => {
-                const savedData = localStorage.getItem('ramadhan_data');
-                if (savedData) setData(JSON.parse(savedData));
-                const savedAlarms = localStorage.getItem('ramadhan_alarms');
-                if (savedAlarms) setAlarms(JSON.parse(savedAlarms));
-                const timer = setInterval(() => setCurrentTime(new Date()), 1000);
-                return () => clearInterval(timer);
-            }, []);
-
-            useEffect(() => {
-                let res = 0;
-                if (zakatType === 'fitrah') res = zakatForm.people * zakatForm.price;
-                else if (zakatType === 'maal') res = zakatForm.assets * 0.025;
-                else if (zakatType === 'fidyah') res = zakatForm.days * zakatForm.price;
-                setZakatResult(res);
-            }, [zakatType, zakatForm]);
-
-            useEffect(() => {
-                const totalPages = 604 * khatamTarget;
-                const perDay = Math.ceil(totalPages / 30);
-                const perPrayer = Math.ceil(perDay / 5);
-                setTilawahResult({ perDay, perPrayer });
-            }, [khatamTarget]);
-
-            const saveData = (newData) => {
-                setData(newData);
-                localStorage.setItem('ramadhan_data', JSON.stringify(newData));
-            };
-
-            const saveAlarms = (newAlarms) => {
-                setAlarms(newAlarms);
-                localStorage.setItem('ramadhan_alarms', JSON.stringify(newAlarms));
-            };
-
-            const currentDay = calculateRamadhanDay(currentTime);
-            const todaySchedule = tabalong_schedule[currentDay - 1] || tabalong_schedule[0];
-
-            useEffect(() => {
-                const currentMinutes = currentTime.getHours() * 60 + currentTime.getMinutes();
-                ['imsak', 'berbuka'].forEach(type => {
-                    if (alarms[type]) {
-                        const [h, m] = todaySchedule[type].split(':').map(Number);
-                        const targetMinutes = h * 60 + m - alarms[type];
-                        if (currentMinutes === targetMinutes && currentTime.getSeconds() === 0) {
-                            showToast(`🔔 ${type === 'imsak' ? 'Imsak' : 'Berbuka'} dalam ${alarms[type]} menit!`, 'warning');
-                            new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3').play().catch(() => {});
-                        }
-                    }
-                });
-            }, [currentTime, alarms, todaySchedule]);
-
-            const showToast = (msg, type = 'info') => setToast({ message: msg, type });
-
-            const handleCheck = (itemId) => {
-                const dateKey = getLocalYYYYMMDD(currentTime);
-                const dayData = data[dateKey] || {};
-                const newData = { ...data, [dateKey]: { ...dayData, [itemId]: !dayData[itemId] } };
-                saveData(newData);
-            };
-
-            const openNoteModal = (item) => {
-                const dateKey = getLocalYYYYMMDD(currentTime);
-                const dayData = data[dateKey] || {};
-                const savedNote = dayData[`${item.id}_note`] || '';
-                setCurrentNoteItem(item);
-                if (item.id === 'tadarus' && savedNote.includes('→')) {
-                    setNoteForm({ text: '', surahDari: '', ayatDari: '', surahKe: '', ayatKe: '' });
-                } else {
-                    setNoteForm({ ...noteForm, text: savedNote });
-                }
-                setNoteModalOpen(true);
-            };
-
-            const saveNote = () => {
-                const dateKey = getLocalYYYYMMDD(currentTime);
-                const dayData = data[dateKey] || {};
-                let noteValue = '';
-                if (currentNoteItem.id === 'tadarus') {
-                    if (noteForm.surahDari && noteForm.ayatDari) {
-                        noteValue = `${noteForm.surahDari} ayat ${noteForm.ayatDari}`;
-                        if (noteForm.surahKe && noteForm.ayatKe) noteValue += ` → ${noteForm.surahKe} ayat ${noteForm.ayatKe}`;
-                    } else noteValue = noteForm.text;
-                } else {
-                    noteValue = noteForm.text;
-                }
-                const newData = { ...data, [dateKey]: { ...dayData, [`${currentNoteItem.id}_note`]: noteValue } };
-                saveData(newData);
-                setNoteModalOpen(false);
-                showToast('Catatan disimpan!', 'success');
-            };
-
-            const saveAlarm = () => {
-                const minutes = parseInt(document.getElementById('alarm-select').value);
-                saveAlarms({ ...alarms, [alarmType]: minutes });
-                setAlarmModalOpen(false);
-                showToast(`Pengingat ${alarmType} diatur!`, 'success');
-            };
-
-            const todayData = data[getLocalYYYYMMDD(currentTime)] || {};
-            const completedCount = checklistConfig.filter(i => todayData[i.id]).length;
-            const progressPercent = (completedCount / checklistConfig.length) * 100;
-
-            const renderToday = () => (
-                <div className="pb-24 animate-fade-in px-1">
-                    <div className="mb-6 card-modern p-4 rounded-xl">
-                        <div className="flex items-center justify-between mb-3">
-                            <div>
-                                <h2 className="text-xl font-bold text-gray-800">Ramadhan ke-{currentDay}</h2>
-                                <span className="text-xs text-gray-500">Tetap Istiqomah!</span>
-                            </div>
-                            <div className="text-right">
-                                <div className="text-2xl font-bold text-blue-600">{completedCount}/{checklistConfig.length}</div>
-                                <div className="text-[10px] text-gray-400 uppercase tracking-wider">Selesai</div>
-                            </div>
-                        </div>
-                        <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                            <div className="h-full bg-gradient-to-r from-blue-500 to-teal-500 rounded-full transition-all duration-500" style={{ width: `${progressPercent}%` }}></div>
+            <main class="max-w-4xl mx-auto p-4 space-y-6">
+                <!-- Current Time & Shift Info -->
+                <div class="bg-white rounded-lg card-shadow p-6">
+                    <div class="text-center">
+                        <div class="text-3xl font-bold text-gray-800" id="currentTime">00:00:00</div>
+                        <div class="text-lg text-gray-600" id="currentDate">Memuat tanggal...</div>
+                        <div id="shiftInfoContainer" class="mt-4 inline-block bg-blue-100 text-blue-800 px-4 py-2 rounded-full hidden">
+                            <span class="font-semibold" id="shiftInfo">Memuat shift...</span>
                         </div>
                     </div>
-
-                    <div className="ornament-divider"><span>۞</span></div>
-
-                    <div className="space-y-3">
-                        {checklistConfig.map((item, idx) => {
-                            const note = todayData[`${item.id}_note`];
-                            return (
-                                <div key={item.id} className="card-modern rounded-xl p-4 slide-up" style={{ animationDelay: `${idx * 0.08}s` }}>
-                                    <label className="flex items-start gap-4 cursor-pointer">
-                                        <div className="pt-1">
-                                            <input type="checkbox" checked={!!todayData[item.id]} onChange={() => handleCheck(item.id)} />
-                                        </div>
-                                        <div className="flex-1 min-w-0">
-                                            <div className="flex items-center gap-2 mb-1">
-                                                <span className="text-xl">{item.icon}</span>
-                                                <span className="font-semibold text-gray-800 text-lg">{item.label}</span>
-                                            </div>
-                                            <div className="text-sm text-gray-500 leading-relaxed">{item.desc}</div>
-                                            {note && <div className="note-badge">📝 {note}</div>}
-                                        </div>
-                                    </label>
-                                    {item.hasNote && (
-                                        <button onClick={() => openNoteModal(item)} className="mt-4 w-full py-2.5 px-3 text-sm rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition-all font-medium border border-blue-100 flex items-center justify-center gap-2">
-                                            ✏️ <span>{note ? 'Ubah Catatan' : 'Tambah Catatan'}</span>
-                                        </button>
-                                    )}
-                                </div>
-                            );
-                        })}
-                    </div>
                 </div>
-            );
 
-            const renderCalendar = () => (
-                <div className="pb-24 animate-fade-in px-1">
-                    <h2 className="text-xl font-bold text-gray-800 mb-4 px-2">Progres Ramadhan</h2>
-                    <div className="grid grid-cols-5 gap-3">
-                        {tabalong_schedule.map((sch, idx) => {
-                            const day = idx + 1;
-                            const dateObj = new Date(2026, 1, 19);
-                            dateObj.setDate(dateObj.getDate() + idx);
-                            const dateStr = getLocalYYYYMMDD(dateObj);
-                            
-                            const dayData = data[dateStr] || {};
-                            const completed = checklistConfig.filter(i => dayData[i.id]).length;
-                            const isToday = day === currentDay;
-                            const isFull = completed === checklistConfig.length;
-                            const hasActivity = completed > 0;
-                            
-                            let bgClass = 'bg-white border-2 border-gray-100';
-                            let textClass = 'text-gray-600';
-                            
-                            if (isToday) {
-                                bgClass = 'bg-blue-50 border-2 border-blue-500 shadow-md ring-2 ring-blue-100';
-                                textClass = 'text-blue-700';
-                            } else if (isFull) {
-                                bgClass = 'bg-emerald-50 border-2 border-emerald-400';
-                                textClass = 'text-emerald-700';
-                            } else if (hasActivity) {
-                                bgClass = 'bg-sky-50 border-2 border-sky-200';
-                                textClass = 'text-sky-700';
-                            }
-                            
-                            return (
-                                <div key={day} className={`rounded-xl p-2 text-center ${bgClass} transition-all flex flex-col justify-center min-h-[70px]`}>
-                                    <div className="text-[10px] uppercase font-bold text-gray-400 mb-1">Hari</div>
-                                    <div className={`text-xl font-bold ${textClass} mb-1`}>{day}</div>
-                                    {completed > 0 && (
-                                        <div className="flex justify-center">
-                                            <span className={`text-[10px] px-1.5 rounded-full font-bold ${isFull ? 'bg-emerald-100 text-emerald-600' : 'bg-gray-100 text-gray-500'}`}>
-                                                {completed}/{checklistConfig.length}
-                                            </span>
-                                        </div>
-                                    )}
+                <!-- Attendance Section -->
+                <div class="bg-white rounded-lg card-shadow p-6">
+                    <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                        <span class="mr-2">📸</span> Absensi Hari Ini
+                    </h2>
+                    <div class="grid md:grid-cols-2 gap-6">
+                        <!-- Camera Section -->
+                        <div class="space-y-4">
+                            <div class="bg-gray-100 rounded-lg p-4 text-center">
+                                <!-- Ukuran potret diterapkan di sini -->
+                                <video id="cameraPreview" class="camera-preview bg-gray-300 hidden" autoplay></video>
+                                <canvas id="photoCanvas" class="camera-preview bg-gray-300 hidden"></canvas>
+                                <div id="cameraPlaceholder" class="camera-preview bg-gray-300 flex items-center justify-center">
+                                    <div class="text-center text-gray-500">
+                                        <span class="text-4xl block mb-2">📷</span>
+                                        <p>Klik tombol untuk mengaktifkan kamera</p>
+                                    </div>
                                 </div>
-                            );
-                        })}
-                    </div>
-                </div>
-            );
-
-            const renderCalculator = () => (
-                <div className="pb-24 animate-fade-in px-1">
-                    <h2 className="text-xl font-bold text-gray-800 mb-4 px-2">Kalkulator & Target</h2>
-                    
-                    <div className="card-modern rounded-2xl p-6 mb-6">
-                        <h3 className="text-center font-bold text-gray-800 mb-4 flex items-center justify-center gap-2 text-lg">
-                            <span>💰</span> Hitung Kewajiban
-                        </h3>
-                        <div className="flex bg-gray-100 p-1 rounded-xl mb-6">
-                            {['fitrah', 'maal', 'fidyah'].map(type => (
-                                <button key={type} onClick={() => setZakatType(type)} className={`flex-1 py-2.5 text-xs font-bold rounded-lg transition-all ${zakatType === type ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}>
-                                    {type === 'fitrah' ? 'Z. Fitrah' : type === 'maal' ? 'Z. Maal' : 'Fidyah'}
+                            </div>
+                            <div class="flex space-x-2">
+                                <button id="startCameraBtn" onclick="startCamera()" class="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors">
+                                    Aktifkan Kamera
                                 </button>
-                            ))}
+                                <button id="takePhotoBtn" onclick="takePhoto()" class="flex-1 bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition-colors hidden">
+                                    Ambil Foto
+                                </button>
+                            </div>
                         </div>
-
-                        <div className="space-y-5">
-                            {zakatType === 'fitrah' && (
-                                <>
-                                    <div>
-                                        <label className="text-xs font-bold text-gray-500 uppercase tracking-wide block mb-2">Jumlah Orang</label>
-                                        <div className="flex items-center bg-gray-50 border border-gray-200 rounded-xl px-3 py-2">
-                                            <span className="text-xl mr-2">👥</span>
-                                            <input type="number" min="1" value={zakatForm.people} onChange={e => setZakatForm({...zakatForm, people: parseInt(e.target.value) || 0})} className="w-full bg-transparent focus:outline-none text-lg font-semibold text-gray-700"/>
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <label className="text-xs font-bold text-gray-500 uppercase tracking-wide block mb-2">Harga Beras (2.5kg)</label>
-                                        <div className="flex items-center bg-gray-50 border border-gray-200 rounded-xl px-3 py-2">
-                                            <span className="text-sm font-bold text-gray-400 mr-2">Rp</span>
-                                            <input type="number" value={zakatForm.price} onChange={e => setZakatForm({...zakatForm, price: parseInt(e.target.value) || 0})} className="w-full bg-transparent focus:outline-none text-lg font-semibold text-gray-700"/>
-                                        </div>
-                                    </div>
-                                </>
-                            )}
-                            {zakatType === 'maal' && (
-                                <div>
-                                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wide block mb-2">Total Nilai Harta</label>
-                                    <div className="flex items-center bg-gray-50 border border-gray-200 rounded-xl px-3 py-2">
-                                        <span className="text-sm font-bold text-gray-400 mr-2">Rp</span>
-                                        <input type="number" value={zakatForm.assets} onChange={e => setZakatForm({...zakatForm, assets: parseInt(e.target.value) || 0})} className="w-full bg-transparent focus:outline-none text-lg font-semibold text-gray-700" placeholder="0"/>
-                                    </div>
-                                    <p className="text-xs text-blue-500 mt-2 bg-blue-50 p-2 rounded-lg">*Pastikan harta mencapai Nishab (setara 85gr emas)</p>
+                        <!-- Attendance Buttons -->
+                        <div class="space-y-4">
+                            <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+                                <h3 class="font-semibold text-green-800 mb-2">Status Absensi</h3>
+                                <div id="attendanceStatus" class="text-sm text-green-600">
+                                    Belum absen masuk hari ini
                                 </div>
-                            )}
-                            {zakatType === 'fidyah' && (
-                                <>
-                                    <div>
-                                        <label className="text-xs font-bold text-gray-500 uppercase tracking-wide block mb-2">Hari Tidak Puasa</label>
-                                        <div className="flex items-center bg-gray-50 border border-gray-200 rounded-xl px-3 py-2">
-                                            <span className="text-xl mr-2">🗓️</span>
-                                            <input type="number" min="1" value={zakatForm.days} onChange={e => setZakatForm({...zakatForm, days: parseInt(e.target.value) || 0})} className="w-full bg-transparent focus:outline-none text-lg font-semibold text-gray-700"/>
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <label className="text-xs font-bold text-gray-500 uppercase tracking-wide block mb-2">Biaya 1x Makan</label>
-                                        <div className="flex items-center bg-gray-50 border border-gray-200 rounded-xl px-3 py-2">
-                                            <span className="text-sm font-bold text-gray-400 mr-2">Rp</span>
-                                            <input type="number" value={zakatForm.price} onChange={e => setZakatForm({...zakatForm, price: parseInt(e.target.value) || 0})} className="w-full bg-transparent focus:outline-none text-lg font-semibold text-gray-700"/>
-                                        </div>
-                                    </div>
-                                </>
-                            )}
-                            <div className="bg-gradient-to-r from-blue-500 to-teal-500 p-5 rounded-xl text-center mt-6 text-white shadow-lg">
-                                <div className="text-xs font-bold opacity-80 uppercase tracking-widest mb-1">Total Kewajiban</div>
-                                <div className="text-3xl font-bold">{formatRupiah(zakatResult)}</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="ornament-divider"><span>۞</span></div>
-
-                    <div className="card-modern rounded-2xl p-6">
-                        <h3 className="text-center font-bold text-gray-800 mb-6 flex items-center justify-center gap-2 text-lg">
-                            <span>📖</span> Target Khatam Quran
-                        </h3>
-                        <div className="bg-orange-50 p-4 rounded-xl border border-orange-100 mb-6">
-                            <label className="text-xs font-bold text-orange-600 block mb-2 uppercase">Ingin Khatam Berapa Kali?</label>
-                            <div className="flex gap-2">
-                                {[1, 2, 3].map(num => (
-                                    <button key={num} onClick={() => setKhatamTarget(num)} className={`flex-1 py-2 rounded-lg text-sm font-bold border ${khatamTarget === num ? 'bg-orange-500 border-orange-500 text-white' : 'bg-white border-orange-200 text-orange-600'}`}>
-                                        {num}x
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="bg-white p-4 rounded-xl border-2 border-gray-100 shadow-sm text-center">
-                                <div className="text-3xl font-bold text-gray-800 mb-1">{tilawahResult.perDay}</div>
-                                <div className="text-xs text-gray-500 font-bold uppercase">Halaman / Hari</div>
-                            </div>
-                            <div className="bg-white p-4 rounded-xl border-2 border-gray-100 shadow-sm text-center">
-                                <div className="text-3xl font-bold text-blue-600 mb-1">{tilawahResult.perPrayer}</div>
-                                <div className="text-xs text-blue-500 font-bold uppercase">Halaman / Shalat</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            );
-
-            const renderStats = () => {
-                const stats = checklistConfig.map(item => {
-                    let count = 0;
-                    Object.values(data).forEach(dayData => { if (dayData[item.id]) count++; });
-                    const percentage = Math.round((count / TOTAL_DAYS) * 100);
-                    return { ...item, count, percentage };
-                });
-                return (
-                    <div className="pb-24 animate-fade-in px-1">
-                        <h2 className="text-xl font-bold text-gray-800 mb-4 px-2">Statistik Ibadah</h2>
-                        <div className="card-modern rounded-2xl p-6 mb-6">
-                            <h3 className="text-center font-bold text-gray-800 mb-6 flex items-center justify-center gap-2">📊 Grafik Progres</h3>
-                            <div className="space-y-5">
-                                {stats.map(stat => (
-                                    <div key={stat.id}>
-                                        <div className="flex items-center justify-between mb-2">
-                                            <div className="flex items-center gap-2">
-                                                <span className="text-lg">{stat.icon}</span>
-                                                <span className="text-sm font-bold text-gray-700">{stat.label}</span>
-                                            </div>
-                                            <span className="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded-md">{stat.percentage}%</span>
-                                        </div>
-                                        <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden">
-                                            <div className="h-full bg-gradient-to-r from-blue-500 to-teal-500 rounded-full" style={{ width: `${stat.percentage}%` }}></div>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                        <div className="card-modern rounded-2xl p-6">
-                            <h3 className="text-center font-bold text-gray-800 mb-6">🏅 Penghargaan</h3>
-                            <div className="grid grid-cols-2 gap-3">
-                                {achievementsList.map(ach => {
-                                    const stat = stats.find(s => s.id === ach.type);
-                                    const unlocked = stat ? stat.count >= ach.target : false;
-                                    return (
-                                        <div key={ach.id} className={`p-4 rounded-xl text-center border-2 transition-all ${unlocked ? 'bg-amber-50 border-amber-300 shadow-sm' : 'bg-gray-50 border-gray-100 opacity-60'}`}>
-                                            <div className={`text-4xl mb-3 transform transition-transform ${unlocked ? 'scale-110 drop-shadow-md' : 'grayscale'}`}>{ach.icon}</div>
-                                            <div className={`text-sm font-bold ${unlocked ? 'text-amber-800' : 'text-gray-500'}`}>{ach.label}</div>
-                                            <div className={`text-[10px] mt-1 ${unlocked ? 'text-amber-600' : 'text-gray-400'}`}>{ach.desc}</div>
-                                        </div>
-                                    )
-                                })}
-                            </div>
-                        </div>
-                    </div>
-                );
-            };
-
-            return (
-                <div className="h-full flex flex-col overflow-hidden bg-slate-50 islamic-pattern font-sans">
-                    {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
-
-                    <header className="relative z-10 px-4 pt-3 pb-4 flex-shrink-0 bg-gradient-to-br from-blue-600 to-teal-600 text-white rounded-b-2xl shadow-lg overflow-hidden transition-all duration-300">
-                        <div className="header-curve"><svg viewBox="0 0 500 150" preserveAspectRatio="none"><path d="M0.00,49.98 C149.99,150.00 349.20,-49.98 500.00,49.98 L500.00,150.00 L0.00,150.00 Z"></path></svg></div>
-                        <div className="text-center relative z-20">
-                            <div className="flex items-center justify-center gap-2 mb-2">
-                                <div className="bg-white/20 p-1.5 rounded-xl backdrop-blur-md shadow-inner">
-                                    <img src="https://i.ibb.co.com/WvTwLMn5/image-1.png" alt="Logo" className="h-8 object-contain" onError={(e) => { e.target.style.display = 'none'; }} />
+                                <div id="workDuration" class="text-sm text-gray-600 mt-1 hidden">
+                                    Durasi kerja: <span id="workTime">0 jam 0 menit</span>
                                 </div>
                             </div>
-                            
-                            <div className="arabic-font text-lg text-blue-50 mb-0.5 drop-shadow-md">بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيمِ</div>
-                            <h1 className="text-xl font-extrabold text-white mb-0.5 tracking-tight drop-shadow-sm">Ramadhan Tracker Kopkar AKM</h1>
-                            
-                            <div className="flex items-center justify-center gap-2 mb-2">
-                                <p className="text-blue-100 text-[10px] font-medium">Selamat Berpuasa</p>
-                                <span className="text-blue-200">•</span>
-                                <div className="inline-flex items-center gap-1 bg-white/10 px-2 py-0.5 rounded-full text-[10px] font-semibold border border-white/10">
-                                    <span>📍</span> Tabalong
-                                </div>
-                            </div>
-                            
-                            <button onClick={() => setPrayerModalOpen(true)} className="w-full max-w-xs mx-auto bg-white/10 hover:bg-white/20 active:scale-95 text-white text-xs font-bold py-2 px-3 rounded-lg transition-all flex items-center justify-center gap-2 border border-white/20 shadow-sm">
-                                <span>🤲</span> Kumpulan Doa Harian
+                            <button id="clockInBtn" onclick="clockIn()" class="w-full bg-green-600 text-white py-3 px-4 rounded-lg hover:bg-green-700 transition-colors font-semibold">
+                                🕐 Absen Masuk
+                            </button>
+                            <button id="clockOutBtn" onclick="showClockOutModal()" class="w-full bg-red-600 text-white py-3 px-4 rounded-lg hover:bg-red-700 transition-colors font-semibold hidden">
+                                🕐 Absen Keluar
                             </button>
                         </div>
-                    </header>
-
-                    <section className="px-4 py-4 flex-shrink-0 -mt-2 relative z-20">
-                        <div className="grid grid-cols-2 gap-3">
-                            <div className="card-highlight rounded-2xl p-3 text-center transform transition hover:-translate-y-1">
-                                <div className="text-[10px] font-bold text-blue-100 uppercase tracking-widest mb-0.5">Imsak</div>
-                                <div className="text-2xl font-bold font-mono text-white mb-0.5">{todaySchedule.imsak}</div>
-                                <div className="text-[10px] text-blue-100 bg-white/20 rounded-full px-2 py-0.5 inline-block mb-2 font-mono tracking-wide">{formatCountdown(todaySchedule.imsak, currentTime)}</div>
-                                <button onClick={() => { setAlarmType('imsak'); setAlarmModalOpen(true); }} className="w-full py-1.5 px-2 text-[10px] rounded-lg bg-white/20 hover:bg-white/30 text-white font-bold transition-all flex items-center justify-center gap-1">
-                                    🔔 {alarms.imsak ? 'Aktif' : 'Alarm'}
-                                </button>
-                            </div>
-                            <div className="card-highlight rounded-2xl p-3 text-center transform transition hover:-translate-y-1" style={{background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)'}}>
-                                <div className="text-[10px] font-bold text-orange-100 uppercase tracking-widest mb-0.5">Berbuka</div>
-                                <div className="text-2xl font-bold font-mono text-white mb-0.5">{todaySchedule.berbuka}</div>
-                                <div className="text-[10px] text-orange-100 bg-white/20 rounded-full px-2 py-0.5 inline-block mb-2 font-mono tracking-wide">{formatCountdown(todaySchedule.berbuka, currentTime)}</div>
-                                <button onClick={() => { setAlarmType('berbuka'); setAlarmModalOpen(true); }} className="w-full py-1.5 px-2 text-[10px] rounded-lg bg-white/20 hover:bg-white/30 text-white font-bold transition-all flex items-center justify-center gap-1">
-                                    🔔 {alarms.berbuka ? 'Aktif' : 'Alarm'}
-                                </button>
-                            </div>
-                        </div>
-                    </section>
-
-                    <main className="flex-1 overflow-y-auto px-4 py-2 no-scrollbar relative z-10 pb-24">
-                        {activeTab === 'today' && renderToday()}
-                        {activeTab === 'calendar' && renderCalendar()}
-                        {activeTab === 'calculator' && renderCalculator()}
-                        {activeTab === 'stats' && renderStats()}
-                    </main>
-
-                    <nav className="fixed bottom-0 left-0 right-0 nav-modern px-6 py-3 z-50">
-                        <div className="flex justify-between items-center max-w-md mx-auto">
-                            {['today', 'calendar', 'calculator', 'stats'].map(tab => {
-                                const icons = {
-                                    today: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>,
-                                    calendar: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line><path d="M8 14h.01"></path><path d="M12 14h.01"></path><path d="M16 14h.01"></path><path d="M8 18h.01"></path><path d="M12 18h.01"></path><path d="M16 18h.01"></path></svg>,
-                                    calculator: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"></rect><line x1="8" y1="6" x2="16" y2="6"></line><line x1="16" y1="14" x2="16" y2="18"></line><path d="M16 10h.01"></path><path d="M12 10h.01"></path><path d="M8 10h.01"></path><path d="M12 14h.01"></path><path d="M8 14h.01"></path><path d="M12 18h.01"></path><path d="M8 18h.01"></path></svg>,
-                                    stats: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 20V10"></path><path d="M12 20V4"></path><path d="M6 20v-6"></path></svg>
-                                };
-                                return (
-                                    <button key={tab} onClick={() => setActiveTab(tab)} className={`nav-item-modern flex flex-col items-center gap-1 ${activeTab === tab ? 'active' : 'text-gray-400'}`}>
-                                        <div className={`icon-container p-2 rounded-xl transition-all ${activeTab === tab ? 'bg-blue-50 text-blue-600 shadow-sm' : ''}`}>
-                                            {icons[tab]}
-                                        </div>
-                                        <span className="text-[10px] font-medium capitalize">{tab === 'today' ? 'Hari Ini' : tab === 'calendar' ? 'Jadwal' : tab === 'calculator' ? 'Hitung' : 'Progres'}</span>
-                                    </button>
-                                );
-                            })}
-                        </div>
-                    </nav>
-
-                    <Modal isOpen={isPrayerModalOpen} onClose={() => setPrayerModalOpen(false)} title="🤲 Doa-Doa Pilihan" actions={<button onClick={() => setPrayerModalOpen(false)} className="btn-primary w-full py-3 rounded-xl font-semibold shadow-lg shadow-blue-200">Tutup</button>}>
-                        <div className="space-y-6">
-                            {prayersData.map((prayer, idx) => (
-                                <div key={idx} className="bg-white p-5 rounded-2xl border border-blue-50 shadow-sm">
-                                    <h4 className="font-bold text-blue-700 mb-3 border-b border-blue-50 pb-2">{prayer.title}</h4>
-                                    <p className="arabic-font text-2xl text-right leading-loose mb-3 text-gray-800">{prayer.arabic}</p>
-                                    <p className="text-sm text-gray-600 italic mb-2 bg-gray-50 p-2 rounded-lg">{prayer.latin}</p>
-                                    <p className="text-xs text-gray-500 leading-relaxed">"{prayer.translation}"</p>
-                                </div>
-                            ))}
-                        </div>
-                    </Modal>
-
-                    <Modal isOpen={isAlarmModalOpen} onClose={() => setAlarmModalOpen(false)} title={`🔔 Pengingat ${alarmType === 'imsak' ? 'Imsak' : 'Berbuka'}`} actions={<><button onClick={() => setAlarmModalOpen(false)} className="flex-1 py-3 rounded-xl border border-gray-200 text-gray-600 font-medium hover:bg-gray-50">Batal</button><button onClick={saveAlarm} className="btn-primary flex-1 py-3 rounded-xl font-semibold shadow-lg shadow-blue-200">Simpan</button></>}>
-                        <div className="py-2">
-                            <label className="text-sm font-bold text-gray-700 mb-3 block">Ingatkan saya sebelum waktu tiba:</label>
-                            <div className="grid grid-cols-2 gap-3">
-                                {[5, 10, 15, 30].map(min => (
-                                    <div key={min} className="relative">
-                                        <input type="radio" name="alarm_min" id={`min_${min}`} value={min} className="peer hidden" />
-                                        <label onClick={() => document.getElementById('alarm-select').value = min} htmlFor={`min_${min}`} className="block text-center p-3 rounded-xl border-2 border-gray-100 bg-gray-50 cursor-pointer transition-all hover:border-blue-200 peer-checked:border-blue-500 peer-checked:bg-blue-50 peer-checked:text-blue-700 font-semibold text-sm">
-                                            {min} Menit
-                                        </label>
-                                    </div>
-                                ))}
-                            </div>
-                            <select id="alarm-select" className="hidden">
-                                <option value="5">5</option>
-                                <option value="10">10</option>
-                                <option value="15">15</option>
-                                <option value="30">30</option>
-                            </select>
-                        </div>
-                    </Modal>
-
-                    <Modal isOpen={isNoteModalOpen} onClose={() => setNoteModalOpen(false)} title={`✏️ Catatan ${currentNoteItem?.label}`} actions={<><button onClick={() => setNoteModalOpen(false)} className="flex-1 py-3 rounded-xl border border-gray-200 text-gray-600 font-medium hover:bg-gray-50">Batal</button><button onClick={saveNote} className="btn-primary flex-1 py-3 rounded-xl font-semibold shadow-lg shadow-blue-200">Simpan</button></>}>
-                        <div className="space-y-4 py-2">
-                            {currentNoteItem?.id === 'tadarus' ? (
-                                <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
-                                    <div className="grid grid-cols-[1fr,auto] gap-3 mb-3">
-                                        <div><label className="text-xs font-bold text-gray-500 mb-1 block uppercase">Dari Surat</label><input type="text" placeholder="Al-Fatihah" value={noteForm.surahDari} onChange={e => setNoteForm({...noteForm, surahDari: e.target.value})} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"/></div>
-                                        <div><label className="text-xs font-bold text-gray-500 mb-1 block uppercase">Ayat</label><input type="text" placeholder="1" value={noteForm.ayatDari} onChange={e => setNoteForm({...noteForm, ayatDari: e.target.value})} className="w-20 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 text-center"/></div>
-                                    </div>
-                                    <div className="flex items-center justify-center my-2 text-gray-300 text-xs font-bold">⬇️ SAMPAI ⬇️</div>
-                                    <div className="grid grid-cols-[1fr,auto] gap-3">
-                                        <div><label className="text-xs font-bold text-gray-500 mb-1 block uppercase">Ke Surat</label><input type="text" placeholder="Al-Baqarah" value={noteForm.surahKe} onChange={e => setNoteForm({...noteForm, surahKe: e.target.value})} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"/></div>
-                                        <div><label className="text-xs font-bold text-gray-500 mb-1 block uppercase">Ayat</label><input type="text" placeholder="10" value={noteForm.ayatKe} onChange={e => setNoteForm({...noteForm, ayatKe: e.target.value})} className="w-20 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 text-center"/></div>
-                                    </div>
-                                    <a href="https://quran.com" target="_blank" className="mt-4 block w-full text-center py-2 bg-white border border-gray-200 rounded-lg text-xs font-bold text-gray-600 hover:text-blue-600 hover:border-blue-200 transition-all">🌐 Buka Quran Online</a>
-                                </div>
-                            ) : (
-                                <div><label className="text-xs font-bold text-gray-500 mb-2 block uppercase">Isi Catatan</label><textarea placeholder="Tulis progres atau catatan ibadah Anda di sini..." className="w-full border border-gray-200 rounded-xl px-4 py-3 text-gray-800 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-50/50 resize-none shadow-sm" rows="5" value={noteForm.text} onChange={e => setNoteForm({...noteForm, text: e.target.value})}></textarea></div>
-                            )}
-                        </div>
-                    </Modal>
+                    </div>
                 </div>
-            );
-        };
 
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
+                <!-- Work Schedule -->
+                <div class="bg-white rounded-lg card-shadow p-6">
+                    <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                        <span class="mr-2">📅</span> Jadwal Roster Kerja
+                    </h2>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm">
+                            <thead>
+                                <tr class="bg-gray-50">
+                                    <th class="text-left p-3 font-semibold">Hari</th>
+                                    <th class="text-left p-3 font-semibold">Tanggal</th>
+                                    <th class="text-left p-3 font-semibold">Shift</th>
+                                    <th class="text-left p-3 font-semibold">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="scheduleTable">
+                                <!-- Data akan diisi oleh JavaScript -->
+                                <tr><td colspan="4" class="text-center p-4 text-gray-500">Memuat jadwal...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </main>
+        </div>
+
+        <!-- Modals -->
+        <div id="clockOutModal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center p-4 z-50">
+            <div class="bg-white rounded-lg max-w-md w-full p-6">
+                 <h3 class="text-lg font-bold text-gray-800 mb-4">Konfirmasi Absen Keluar</h3>
+                <div id="earlyLeaveWarning" class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4 hidden">
+                    <div class="flex items-start">
+                        <span class="text-yellow-500 mr-2">⚠️</span>
+                        <div>
+                            <p class="font-semibold text-yellow-800">Peringatan!</p>
+                            <p class="text-yellow-700 text-sm">Anda akan pulang lebih cepat dari jadwal shift. Mohon berikan alasan kepada manager.</p>
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <label for="leaveReason" class="block text-sm font-medium text-gray-700 mb-2">Alasan ijin pulang cepat:</label>
+                        <textarea id="leaveReason" rows="3" class="w-full border border-gray-300 rounded-lg p-3 text-sm" placeholder="Contoh: Ada keperluan keluarga mendesak..."></textarea>
+                    </div>
+                </div>
+                <div class="text-center mb-4">
+                    <p class="text-gray-600">Waktu keluar: <span id="clockOutTime" class="font-semibold"></span></p>
+                    <p class="text-gray-600">Total jam kerja: <span id="totalWorkTime" class="font-semibold"></span></p>
+                </div>
+                <div class="flex space-x-3">
+                    <button onclick="closeClockOutModal()" class="flex-1 bg-gray-300 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-400 transition-colors">
+                        Batal
+                    </button>
+                    <button onclick="confirmClockOut()" class="flex-1 bg-red-600 text-white py-2 px-4 rounded-lg hover:bg-red-700 transition-colors">
+                        Konfirmasi Keluar
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div id="successModal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center p-4 z-50">
+            <div class="bg-white rounded-lg max-w-sm w-full p-6 text-center">
+                <div class="text-green-500 text-5xl mb-4">✅</div>
+                <h3 class="text-lg font-bold text-gray-800 mb-2" id="successTitle">Absensi Berhasil!</h3>
+                <p class="text-gray-600 mb-4" id="successMessage">Aksi berhasil dicatat</p>
+                <button onclick="closeSuccessModalAndReset()" class="bg-green-600 text-white py-2 px-6 rounded-lg hover:bg-green-700 transition-colors">
+                    OK
+                </button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // PASTE URL DEPLOYMENT BARU ANDA DI SINI
+        const GAS_URL = "https://script.google.com/macros/s/AKfycbzdqB1CNQl55Nw7WFqquuLyjfhEcfViIiCNmZh149EhQDp5La28sChQC5eLRMEq4-FU/exec";
+
+        const selectionScreen = document.getElementById('employee-selection-screen');
+        const attendanceScreen = document.getElementById('attendance-screen');
+        const employeeListDiv = document.getElementById('employee-list');
+
+        let clockInTime = null;
+        let currentStream = null;
+        let photoTaken = false;
+        let employeeId = null;
+        let employeeData = {};
+        let workDurationInterval = null;
+
+        async function loadEmployeeList() {
+            try {
+                // Tampilkan loading
+                employeeListDiv.innerHTML = '<p class="col-span-full text-gray-500">Memuat daftar karyawan...</p>';
+                const response = await fetch(`${GAS_URL}?action=getEmployeeList`);
+                if (!response.ok) { throw new Error(`Network response error: ${response.statusText}`); }
+                const result = await response.json();
+                
+                if (result.status === 'success' && result.data.length > 0) {
+                    employeeListDiv.innerHTML = ''; 
+                    result.data.forEach(emp => {
+                        const button = document.createElement('button');
+                        button.className = "bg-blue-500 text-white font-bold py-4 px-2 rounded-lg hover:bg-blue-600 transition-colors shadow-md";
+                        button.textContent = emp.nama;
+                        button.onclick = () => selectEmployee(emp.id);
+                        employeeListDiv.appendChild(button);
+                    });
+                } else if (result.status === 'error') {
+                     throw new Error(result.message);
+                } else {
+                    employeeListDiv.innerHTML = '<p class="col-span-full text-red-500">Gagal memuat daftar karyawan atau tidak ada data.</p>';
+                }
+            } catch (error) {
+                employeeListDiv.innerHTML = `<p class="col-span-full text-red-500">Error: ${error.message}. Pastikan URL GAS benar dan sudah di-deploy.</p>`;
+                showNotification(`Error: ${error.message}`, 'error');
+            }
+        }
+
+        function selectEmployee(selectedId) {
+            employeeId = selectedId;
+            selectionScreen.classList.add('hidden');
+            attendanceScreen.classList.remove('hidden');
+            document.getElementById('header-greeting').textContent = "Selamat datang,";
+            loadEmployeeData();
+        }
+
+        function goBackToSelection() {
+            employeeId = null;
+            employeeData = {};
+            photoTaken = false;
+            if (currentStream) {
+                currentStream.getTracks().forEach(track => track.stop());
+                currentStream = null;
+            }
+            if (workDurationInterval) {
+                clearInterval(workDurationInterval);
+                workDurationInterval = null;
+            }
+
+            resetAttendanceUI();
+            
+            attendanceScreen.classList.add('hidden');
+            selectionScreen.classList.remove('hidden');
+            document.getElementById('employeeName').textContent = "Silakan Pilih Nama Anda";
+            // Muat ulang daftar karyawan jika terjadi error sebelumnya
+            if (employeeListDiv.innerHTML.includes('Error')) {
+                loadEmployeeList();
+            }
+        }
+        
+        function resetAttendanceUI() {
+            document.getElementById('employeeName').textContent = 'Memuat...';
+            document.getElementById('shiftInfoContainer').classList.add('hidden');
+            document.getElementById('cameraPreview').classList.add('hidden');
+            document.getElementById('photoCanvas').classList.add('hidden');
+            document.getElementById('cameraPlaceholder').classList.remove('hidden');
+            document.getElementById('startCameraBtn').classList.remove('hidden');
+            const takePhotoBtn = document.getElementById('takePhotoBtn');
+            takePhotoBtn.classList.add('hidden');
+            takePhotoBtn.textContent = 'Ambil Foto';
+            takePhotoBtn.onclick = takePhoto;
+            
+            document.getElementById('attendanceStatus').textContent = 'Belum absen masuk hari ini';
+            document.getElementById('workDuration').classList.add('hidden');
+            document.getElementById('workTime').textContent = '0 jam 0 menit';
+            const clockInBtn = document.getElementById('clockInBtn');
+            clockInBtn.classList.remove('hidden');
+            clockInBtn.disabled = false;
+            clockInBtn.classList.remove('bg-gray-400');
+            clockInBtn.classList.add('bg-green-600');
+            document.getElementById('clockOutBtn').classList.add('hidden');
+
+            document.getElementById('scheduleTable').innerHTML = '<tr><td colspan="4" class="text-center p-4 text-gray-500">Memuat jadwal...</td></tr>';
+        }
+
+        async function loadEmployeeData() {
+            if (!employeeId) return;
+            showNotification('Memuat data Anda...', 'info');
+            try {
+                const response = await fetch(`${GAS_URL}?action=getEmployeeData&id=${employeeId}`);
+                if (!response.ok) { throw new Error(`Network response error: ${response.statusText}`); }
+                const result = await response.json();
+
+                if (result.status === 'success') {
+                    employeeData = result.data;
+                    populateEmployeeData(employeeData);
+                    showNotification('Data berhasil dimuat', 'success');
+                } else {
+                    throw new Error(result.message);
+                }
+            } catch (error) {
+                showNotification(`Error: ${error.message}`, 'error');
+                goBackToSelection();
+            }
+        }
+        
+        function populateEmployeeData(data) {
+            document.getElementById('employeeName').textContent = data.employeeName;
+            if(data.currentShift && data.currentShift !== "Hari Ini Libur") {
+                document.getElementById('shiftInfo').textContent = data.currentShift;
+                document.getElementById('shiftInfoContainer').classList.remove('hidden');
+            } else {
+                document.getElementById('shiftInfo').textContent = "Hari Ini Libur";
+                document.getElementById('shiftInfoContainer').classList.remove('hidden');
+            }
+
+            if (data.attendanceStatus) {
+                const status = data.attendanceStatus;
+                
+                try {
+                     // Check jika jam masuk valid
+                    if (status.Jam_Masuk && status.Jam_Masuk.includes(':')) {
+                        const [day, month, year] = status.Tanggal.split('/').map(Number);
+                        const [hour, minute] = status.Jam_Masuk.split(':').map(Number);
+                        clockInTime = new Date(year, month - 1, day, hour, minute);
+                    } else {
+                        throw new Error("Format Jam Masuk tidak valid");
+                    }
+                } catch (e) {
+                    console.error("Error parsing clockInTime:", e, status);
+                    showNotification("Gagal memproses waktu absen masuk.", "error");
+                    clockInTime = null; // Set null jika error
+                }
+
+
+                if (!status.Jam_Keluar) {
+                    document.getElementById('attendanceStatus').textContent = `Sudah absen masuk pada ${status.Jam_Masuk}`;
+                    document.getElementById('workDuration').classList.remove('hidden');
+                    document.getElementById('clockInBtn').classList.add('hidden');
+                    document.getElementById('clockOutBtn').classList.remove('hidden');
+                    if(clockInTime) startWorkDurationTimer(); // Hanya jalankan jika clockInTime valid
+                } else {
+                    document.getElementById('attendanceStatus').textContent = `Selesai bekerja. Absen keluar pada ${status.Jam_Keluar}`;
+                    const duration = status.Durasi_Menit || 0;
+                    document.getElementById('workTime').textContent = `${Math.floor(duration / 60)} jam ${duration % 60} menit`;
+                    document.getElementById('workDuration').classList.remove('hidden');
+                    document.getElementById('clockInBtn').classList.add('hidden');
+                    document.getElementById('clockOutBtn').classList.add('hidden');
+                }
+            } else {
+                if (!data.currentShift || data.currentShift === "Hari Ini Libur") {
+                    document.getElementById('attendanceStatus').textContent = "Anda tidak ada jadwal hari ini.";
+                    const clockInBtn = document.getElementById('clockInBtn');
+                    clockInBtn.disabled = true;
+                    clockInBtn.classList.add('bg-gray-400');
+                    clockInBtn.classList.remove('bg-green-600');
+                } else {
+                     document.getElementById('attendanceStatus').textContent = "Belum absen masuk hari ini";
+                }
+            }
+            const scheduleTable = document.getElementById('scheduleTable');
+            scheduleTable.innerHTML = '';
+            if(data.scheduleList && data.scheduleList.length > 0) {
+                data.scheduleList.forEach(item => {
+                    const statusClass = item.status === 'Sedang Berlangsung' ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-600';
+                    scheduleTable.innerHTML += `<tr class="border-b"><td class="p-3 font-medium">${item.hari}</td><td class="p-3">${item.tanggal}</td><td class="p-3"><span class="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">${item.shift}</span></td><td class="p-3"><span class="${statusClass} px-2 py-1 rounded text-xs">${item.status}</span></td></tr>`;
+                });
+            } else {
+                scheduleTable.innerHTML = '<tr><td colspan="4" class="text-center p-4 text-gray-500">Tidak ada jadwal ditemukan.</td></tr>';
+            }
+        }
+        
+        function updateTime() {
+            const currentTimeEl = document.getElementById('currentTime');
+            const currentDateEl = document.getElementById('currentDate');
+            if (!currentTimeEl || !currentDateEl) return;
+            const now = new Date();
+            currentTimeEl.textContent = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            currentDateEl.textContent = now.toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+        }
+
+        async function startCamera() {
+             const video = document.getElementById('cameraPreview');
+             const canvas = document.getElementById('photoCanvas');
+             // Set ukuran eksplisit untuk canvas agar sesuai
+             const previewBox = document.getElementById('cameraPlaceholder');
+             canvas.width = previewBox.offsetWidth;
+             canvas.height = previewBox.offsetHeight;
+
+            try {
+                // Minta resolusi yang mendekati potret
+                const constraints = { 
+                    video: { 
+                        facingMode: "user",
+                        width: { ideal: 480 },
+                        height: { ideal: 640 }
+                    } 
+                };
+                const stream = await navigator.mediaDevices.getUserMedia(constraints);
+                currentStream = stream;
+                video.srcObject = stream;
+                document.getElementById('cameraPlaceholder').classList.add('hidden');
+                canvas.classList.add('hidden'); // Sembunyikan canvas
+                video.classList.remove('hidden'); // Tampilkan video
+                document.getElementById('startCameraBtn').classList.add('hidden');
+                document.getElementById('takePhotoBtn').classList.remove('hidden');
+            } catch (error) { 
+                console.error("Error starting camera:", error);
+                showNotification('Tidak dapat mengakses kamera. Pastikan izin kamera telah diberikan.', 'error'); 
+            }
+        }
+
+        function takePhoto() {
+            const video = document.getElementById('cameraPreview');
+            const canvas = document.getElementById('photoCanvas');
+            const ctx = canvas.getContext('2d');
+            
+            // Set ukuran canvas agar sesuai dengan video feed
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            
+            // Gambar frame video ke canvas
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            
+            video.classList.add('hidden'); // Sembunyikan video
+            canvas.classList.remove('hidden'); // Tampilkan canvas (foto)
+            
+            if (currentStream) { currentStream.getTracks().forEach(track => track.stop()); }
+            photoTaken = true;
+            const takePhotoBtn = document.getElementById('takePhotoBtn');
+            takePhotoBtn.textContent = 'Foto Ulang';
+            takePhotoBtn.onclick = retakePhoto;
+        }
+
+        function retakePhoto() {
+            document.getElementById('photoCanvas').classList.add('hidden');
+            document.getElementById('cameraPlaceholder').classList.add('hidden'); // placeholder tetap hidden
+            const startCameraBtn = document.getElementById('startCameraBtn');
+            startCameraBtn.classList.add('hidden'); // tombol start tetap hidden
+            const takePhotoBtn = document.getElementById('takePhotoBtn');
+            takePhotoBtn.classList.add('hidden'); // Sembunyikan tombol foto
+            
+            photoTaken = false;
+            
+            // Langsung restart kamera
+            startCamera();
+            
+            // Ubah tombol kembali
+            takePhotoBtn.textContent = 'Ambil Foto';
+            takePhotoBtn.onclick = takePhoto;
+        }
+
+
+        async function clockIn() {
+            if (!photoTaken) { return showNotification('Mohon ambil foto terlebih dahulu untuk absensi.', 'error'); }
+            showNotification('Mencatat absen masuk...', 'info');
+            
+            // Disable tombol
+            const clockInBtn = document.getElementById('clockInBtn');
+            clockInBtn.disabled = true;
+            clockInBtn.textContent = "Mengirim...";
+            
+            const canvas = document.getElementById('photoCanvas');
+            const photoData = canvas.toDataURL('image/jpeg', 0.8); // Kompresi foto
+            
+            try {
+                const response = await fetch(GAS_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'clockIn', employeeId: employeeId, photoBase64: photoData, shiftStartTime: employeeData.shiftStartTime })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Server error: ${response.statusText}`);
+                }
+
+                const result = await response.json(); 
+
+                if (result.status === 'success') {
+                    const now = new Date();
+                    clockInTime = now;
+                    document.getElementById('attendanceStatus').textContent = `Sudah absen masuk pada ${now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}`;
+                    document.getElementById('workDuration').classList.remove('hidden');
+                    document.getElementById('clockInBtn').classList.add('hidden');
+                    document.getElementById('clockOutBtn').classList.remove('hidden');
+                    showSuccessModal('Absensi Masuk Berhasil!', `Absen masuk berhasil dicatat pada ${now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}`);
+                    startWorkDurationTimer();
+                } else {
+                    throw new Error(result.message || 'Gagal mencatat absensi');
+                }
+
+            } catch (error) { 
+                showNotification(`Error: ${error.message}`, 'error'); 
+                // Kembalikan tombol ke state normal jika error
+                clockInBtn.disabled = false;
+                clockInBtn.textContent = "🕐 Absen Masuk";
+            }
+        }
+        
+        function startWorkDurationTimer() {
+            if (workDurationInterval) clearInterval(workDurationInterval);
+            updateWorkDuration();
+            workDurationInterval = setInterval(updateWorkDuration, 60000);
+        }
+
+        function updateWorkDuration() {
+            if (!clockInTime || isNaN(clockInTime.getTime())) return; // Cek validitas Date
+            const now = new Date();
+            const diffMs = now - clockInTime;
+            const hours = Math.floor(diffMs / 3600000);
+            const minutes = Math.floor((diffMs % 3600000) / 60000);
+            document.getElementById('workTime').textContent = `${hours} jam ${minutes} menit`;
+        }
+
+        function showClockOutModal() {
+            const now = new Date();
+            let isEarlyLeave = false;
+            if (employeeData.shiftEndTime) {
+                try {
+                    const [endHour, endMinute] = employeeData.shiftEndTime.split(':').map(Number);
+                    if (now.getHours() < endHour || (now.getHours() === endHour && now.getMinutes() < endMinute)) {
+                        isEarlyLeave = true;
+                    }
+                } catch(e) { console.error("Error parsing shiftEndTime:", e, employeeData.shiftEndTime); }
+            }
+            
+            document.getElementById('clockOutTime').textContent = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+            
+            if (clockInTime && !isNaN(clockInTime.getTime())) {
+                const diffMs = now - clockInTime;
+                const hours = Math.floor(diffMs / 3600000);
+                const minutes = Math.floor((diffMs % 3600000) / 60000);
+                document.getElementById('totalWorkTime').textContent = `${hours} jam ${minutes} menit`;
+            } else {
+                 document.getElementById('totalWorkTime').textContent = "Data tidak tersedia";
+            }
+            
+            document.getElementById('earlyLeaveWarning').classList.toggle('hidden', !isEarlyLeave);
+            document.getElementById('clockOutModal').classList.remove('hidden');
+        }
+
+        function closeClockOutModal() {
+            document.getElementById('clockOutModal').classList.add('hidden');
+            document.getElementById('leaveReason').value = '';
+        }
+
+        async function confirmClockOut() {
+            const now = new Date();
+            let isEarlyLeave = !document.getElementById('earlyLeaveWarning').classList.contains('hidden');
+            let reason = isEarlyLeave ? document.getElementById('leaveReason').value.trim() : null;
+            if (isEarlyLeave && !reason) { return showNotification('Mohon berikan alasan untuk pulang lebih cepat.', 'error'); }
+            
+            showNotification('Mencatat absen keluar...', 'info');
+            
+            // Disable tombol
+            const confirmBtn = event.target;
+            confirmBtn.disabled = true;
+            confirmBtn.textContent = "Mengirim...";
+            
+            try {
+                const response = await fetch(GAS_URL, {
+                    method: 'POST', 
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'clockOut', employeeId: employeeId, reason: reason })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Server error: ${response.statusText}`);
+                }
+
+                const result = await response.json(); 
+
+                if (result.status === 'success') {
+                    document.getElementById('attendanceStatus').textContent = `Sudah absen keluar pada ${now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}`;
+                    document.getElementById('clockOutBtn').classList.add('hidden');
+                    if (workDurationInterval) clearInterval(workDurationInterval);
+                    closeClockOutModal();
+                    showSuccessModal('Absensi Keluar Berhasil!', `Absen keluar berhasil dicatat pada ${now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}`);
+                    if(reason) { showNotification('Permintaan pulang cepat telah dikirim ke manajer.', 'info'); }
+                } else {
+                    throw new Error(result.message || 'Gagal mencatat absensi keluar');
+                }
+
+            } catch (error) { 
+                showNotification(`Error: ${error.message}`, 'error'); 
+            } finally {
+                // Kembalikan tombol ke state normal
+                confirmBtn.disabled = false;
+                confirmBtn.textContent = "Konfirmasi Keluar";
+            }
+        }
+
+        function showSuccessModal(title, message) {
+            document.getElementById('successTitle').textContent = title;
+            document.getElementById('successMessage').textContent = message;
+            document.getElementById('successModal').classList.remove('hidden');
+        }
+
+        function closeSuccessModalAndReset() {
+            document.getElementById('successModal').classList.add('hidden');
+            setTimeout(goBackToSelection, 300);
+        }
+
+        function showNotification(message, type = 'info') {
+            // Hapus notifikasi lama jika ada
+            const oldNotification = document.querySelector('.notification-slide');
+            if (oldNotification) {
+                oldNotification.remove();
+            }
+            
+            const notification = document.createElement('div');
+            let bgColor = 'bg-green-500'; // default success
+            if (type === 'error') {
+                bgColor = 'bg-red-500';
+            } else if (type === 'info') {
+                bgColor = 'bg-blue-500';
+            }
+            
+            notification.className = `fixed top-4 right-4 p-4 rounded-lg text-white z-50 notification-slide ${bgColor}`;
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => { 
+                if (document.body.contains(notification)) {
+                    notification.remove(); 
+                }
+            }, 3000);
+        }
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            updateTime();
+            setInterval(updateTime, 1000);
+            loadEmployeeList();
+        });
     </script>
 </body>
 </html>
